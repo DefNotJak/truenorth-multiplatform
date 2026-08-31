@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.androidx.datastore.preferences)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
