@@ -77,7 +77,7 @@ private val monthAbbreviations = listOf(
 
 /** M3's DatePicker encodes the picked date at UTC midnight - format in UTC too, so the
  *  displayed day matches what was actually picked regardless of the device's local timezone. */
-private fun formatDateUtc(millis: Long): String {
+internal fun formatDateUtc(millis: Long): String {
     val date = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
     return "${monthAbbreviations[date.monthNumber - 1]} ${date.dayOfMonth}, ${date.year}"
 }
@@ -87,7 +87,7 @@ private fun formatDateLocal(millis: Long): String {
     return "${monthAbbreviations[date.monthNumber - 1]} ${date.dayOfMonth}, ${date.year}"
 }
 
-private fun percentEncode(value: String): String {
+internal fun percentEncode(value: String): String {
     val unreserved = (('A'..'Z') + ('a'..'z') + ('0'..'9') + listOf('-', '_', '.', '~')).toSet()
     return buildString {
         for (byte in value.encodeToByteArray()) {

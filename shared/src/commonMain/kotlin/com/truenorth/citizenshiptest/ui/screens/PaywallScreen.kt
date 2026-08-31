@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.truenorth.citizenshiptest.data.BillingProducts
 import com.truenorth.citizenshiptest.data.ProductPrice
 
-private data class PricingPlan(
+internal data class PricingPlan(
     val productId: String,
     val title: String,
     val price: String,
@@ -49,7 +49,7 @@ private data class PricingPlan(
     val badge: String?
 )
 
-private fun buildPlans(prices: Map<String, ProductPrice>): List<PricingPlan> {
+internal fun buildPlans(prices: Map<String, ProductPrice>): List<PricingPlan> {
     val oneMonth = prices[BillingProducts.ONE_MONTH]
     val threeMonths = prices[BillingProducts.THREE_MONTHS]
     return listOfNotNull(
@@ -80,8 +80,8 @@ private fun buildPlans(prices: Map<String, ProductPrice>): List<PricingPlan> {
     )
 }
 
-private fun formatAmount(amount: Double): String {
-    val cents = (amount * 100).toLong()
+internal fun formatAmount(amount: Double): String {
+    val cents = kotlin.math.round(amount * 100).toLong()
     val wholePart = cents / 100
     val centPart = (cents % 100).let { if (it < 0) -it else it }
     return "$wholePart.${centPart.toString().padStart(2, '0')}"
