@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "907834401129",
+    "project_id": "truenorth-citizenship-test",
+    "storage_bucket": "truenorth-citizenship-test.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:907834401129:android:046ee8d8ec005d60a2ddf8",
+        "android_client_info": {
+          "package_name": "com.truenorth.citizenshiptest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlnNF0diUWjIaOEhcVZvN69neCefym5Wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
