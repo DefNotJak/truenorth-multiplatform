@@ -22,8 +22,10 @@ actual class PracticeTestPreferencesRepository {
         } else {
             20
         }
+        // NSUserDefaults.stringArrayForKey is a real Foundation API, but Kotlin/Native's
+        // interop erases the NSArray<NSString*> element type - cast explicitly.
         @Suppress("UNCHECKED_CAST")
-        val categories = (defaults.stringArrayForKey(CATEGORIES_KEY) ?: emptyList<String>())
+        val categories = ((defaults.stringArrayForKey(CATEGORIES_KEY) as? List<String>) ?: emptyList())
             .mapNotNull { name -> runCatching { Category.valueOf(name) }.getOrNull() }
             .toSet()
         val questionType = (defaults.stringForKey(QUESTION_TYPE_KEY))
@@ -47,11 +49,6 @@ actual class PracticeTestPreferencesRepository {
         }
         state.value = config
     }
-}
-
-private fun NSUserDefaults.stringArrayForKey(key: String): List<String>? {
-    @Suppress("UNCHECKED_CAST")
-    return this.arrayForKey(key) as? List<String>
 }
 
 @Composable

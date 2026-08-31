@@ -53,6 +53,7 @@ kotlin {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.play.review.ktx)
+            implementation(libs.billing.ktx)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

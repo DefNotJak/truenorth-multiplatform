@@ -1,26 +1,34 @@
 package com.truenorth.citizenshiptest.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavType
+import androidx.savedstate.read
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.truenorth.citizenshiptest.data.AuthRepository
+import com.truenorth.citizenshiptest.data.BillingProducts
 import com.truenorth.citizenshiptest.data.Category
+import com.truenorth.citizenshiptest.data.CompletedPurchase
 import com.truenorth.citizenshiptest.data.FavoriteQuestionsRepository
 import com.truenorth.citizenshiptest.data.FlashcardReviewRepository
+import com.truenorth.citizenshiptest.data.ProductPrice
+import com.truenorth.citizenshiptest.data.PurchaseUpdate
 import com.truenorth.citizenshiptest.data.QuestionReportRepository
 import com.truenorth.citizenshiptest.data.ThemeMode
 import com.truenorth.citizenshiptest.data.UsageRepository
 import com.truenorth.citizenshiptest.data.UsageState
 import com.truenorth.citizenshiptest.data.HomeStats
+import com.truenorth.citizenshiptest.data.rememberBillingRepository
 import com.truenorth.citizenshiptest.data.rememberPracticeTestPreferencesRepository
 import com.truenorth.citizenshiptest.data.rememberReviewPromptRepository
 import com.truenorth.citizenshiptest.data.rememberTestResultsRepository
@@ -62,6 +70,58 @@ fun AppNavHost(
     val usageState by usageRepository.usageState.collectAsState(
         initial = UsageState(freeTestsUsedToday = 0, freeTestDate = null, subscriptionExpiresAtMillis = null)
     )
+
+    val billingRepository = rememberBillingRepository()
+    var productPrices by remember { mutableStateOf<Map<String, ProductPrice>>(emptyMap()) }
+
+    // Grants entitlement for every purchase reported as complete, then consumes/
+    // finishes it so the same one-time product can be bought again once the
+    // time-limited pass expires. Only pops the Paywall if the user is actually on
+    // it - a Success here can also come from startup/resume reconciliation while
+    // the user is anywhere else in the app.
+    suspend fun handlePurchases(purchases: List<CompletedPurchase>) {
+        var grantedAny = false
+        for (purchase in purchases) {
+            val durationMillis = BillingProducts.DURATIONS_MILLIS[purchase.productId] ?: continue
+            try {
+                usageRepository.grantPass(purchase.purchaseToken, durationMillis)
+                billingRepository.consumePurchase(purchase)
+                grantedAny = true
+            } catch (e: Exception) {
+                // Leave unconsumed - the next reconciliation pass (resume/cold
+                // start) will retry.
+            }
+        }
+        if (grantedAny && navController.currentDestination?.route == Routes.PAYWALL) {
+            navController.popBackStack()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        billingRepository.connect()
+        productPrices = billingRepository.queryProductPrices()
+        handlePurchases(billingRepository.queryExistingPurchases())
+        billingRepository.purchaseUpdates.collect { update ->
+            when (update) {
+                is PurchaseUpdate.Success -> handlePurchases(update.purchases)
+                is PurchaseUpdate.UserCancelled -> Unit
+                is PurchaseUpdate.Error -> Unit
+            }
+        }
+    }
+
+    // A purchase can complete outside the live process (e.g. the user backgrounds
+    // the app during the store's own purchase UI), so reconcile again on every
+    // resume, not just once at cold start.
+    LifecycleResumeEffect(Unit) {
+        scope.launch {
+            billingRepository.connect()
+            handlePurchases(billingRepository.queryExistingPurchases())
+        }
+        onPauseOrDispose { }
+    }
+
+    val onSelectPlan: (String) -> Unit = { productId -> billingRepository.launchPurchase(productId) }
 
     val homeStats by repository.observeHomeStats()
         .collectAsState(initial = HomeStats(testsTaken = 0, averageScorePercent = null, accuracyPercent = null))
@@ -210,7 +270,7 @@ fun AppNavHost(
             route = Routes.FLASHCARD_DECK,
             arguments = listOf(navArgument("categoryName") { type = NavType.StringType })
         ) { backStackEntry ->
-            val categoryName = backStackEntry.arguments?.getString("categoryName")
+            val categoryName = backStackEntry.arguments?.read { getStringOrNull("categoryName") }
             val category = Category.entries.first { it.name == categoryName }
             FlashcardDeckScreen(
                 category = category,
@@ -270,7 +330,11 @@ fun AppNavHost(
             )
         }
         composable(Routes.PAYWALL) {
-            PaywallScreen(onClose = { navController.popBackStack() })
+            PaywallScreen(
+                productPrices = productPrices,
+                onSelectPlan = onSelectPlan,
+                onClose = { navController.popBackStack() }
+            )
         }
     }
 }
