@@ -1,5 +1,6 @@
 package com.truenorth.citizenshiptest.data
 
+import androidx.compose.runtime.Composable
 import com.truenorth.citizenshiptest.data.db.CategoryStatEntity
 import com.truenorth.citizenshiptest.data.db.QuestionResultEntity
 import com.truenorth.citizenshiptest.data.db.TestAttemptDao
@@ -7,6 +8,9 @@ import com.truenorth.citizenshiptest.data.db.TestAttemptEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
+
+@Composable
+expect fun rememberTestResultsRepository(): TestResultsRepository
 
 class TestResultsRepository(private val dao: TestAttemptDao) {
 

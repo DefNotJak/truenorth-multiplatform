@@ -1,49 +1,39 @@
 package com.truenorth.citizenshiptest
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.painterResource
-
-import truenorth.shared.generated.resources.Res
-import truenorth.shared.generated.resources.compose_multiplatform
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import com.truenorth.citizenshiptest.data.AuthRepository
+import com.truenorth.citizenshiptest.data.ThemeMode
+import com.truenorth.citizenshiptest.data.rememberThemePreferencesRepository
+import com.truenorth.citizenshiptest.navigation.AppNavHost
+import com.truenorth.citizenshiptest.ui.screens.AuthScreen
+import com.truenorth.citizenshiptest.ui.theme.TrueNorthTheme
+import kotlinx.coroutines.launch
 
 @Composable
-@Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
-            }
+    val themePreferences = rememberThemePreferencesRepository()
+    val authRepository = remember { AuthRepository() }
+    val scope = rememberCoroutineScope()
+    val themeMode by themePreferences.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+    val currentUser by authRepository.currentUser.collectAsState(initial = authRepository.currentUserSnapshot)
+
+    TrueNorthTheme(themeMode = themeMode) {
+        val user = currentUser
+        if (user == null) {
+            AuthScreen(authRepository = authRepository)
+        } else {
+            AppNavHost(
+                themeMode = themeMode,
+                onThemeModeChange = { mode -> scope.launch { themePreferences.setThemeMode(mode) } },
+                userId = user.uid,
+                userEmail = user.email,
+                authRepository = authRepository,
+                onSignOut = { scope.launch { authRepository.signOut() } }
+            )
         }
     }
 }

@@ -52,6 +52,7 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.androidx.datastore.preferences)
+            implementation(libs.play.review.ktx)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -68,6 +69,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.androidx.room3.runtime)
             implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.navigation.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
