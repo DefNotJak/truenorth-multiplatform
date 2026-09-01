@@ -486,16 +486,16 @@ private fun UpgradeNudgeCard(onClick: () -> Unit) {
     }
 }
 
-private fun formatDuration(millis: Long): String {
+internal fun formatDuration(millis: Long): String {
     val totalSeconds = millis / 1000
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "$minutes:${seconds.toString().padStart(2, '0')}"
 }
 
-private enum class OptionState { NEUTRAL, CORRECT, INCORRECT }
+internal enum class OptionState { NEUTRAL, CORRECT, INCORRECT }
 
-private fun optionState(
+internal fun optionState(
     index: Int,
     correctIndex: Int,
     selectedIndex: Int?,

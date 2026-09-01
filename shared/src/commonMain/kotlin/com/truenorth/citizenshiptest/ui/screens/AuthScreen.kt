@@ -207,7 +207,7 @@ fun AuthScreen(authRepository: AuthRepository) {
     }
 }
 
-private fun passwordComplexityError(password: String): String? {
+internal fun passwordComplexityError(password: String): String? {
     return when {
         password.length < 8 -> "Password must be at least 8 characters."
         !password.any { it.isDigit() } -> "Password must include at least one number."
@@ -216,7 +216,7 @@ private fun passwordComplexityError(password: String): String? {
     }
 }
 
-private fun friendlyAuthErrorMessage(e: Exception): String {
+internal fun friendlyAuthErrorMessage(e: Exception): String {
     // Type-based, not error-code-string-based - GitLive's Firebase SDK exposes a
     // real typed exception hierarchy, and the underlying platform SDK's raw error
     // code/format isn't guaranteed consistent between Android and iOS.

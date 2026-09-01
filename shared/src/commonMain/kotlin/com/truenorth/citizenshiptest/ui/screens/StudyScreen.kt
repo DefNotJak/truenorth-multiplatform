@@ -183,7 +183,7 @@ private fun CategoryAccuracyBar(percent: Int) {
     }
 }
 
-private fun reviewStatusLabel(reviewedCount: Int, cardCount: Int): String = when {
+internal fun reviewStatusLabel(reviewedCount: Int, cardCount: Int): String = when {
     cardCount <= 0 || reviewedCount <= 0 -> "Not Started"
     reviewedCount >= cardCount -> "Reviewed"
     else -> "In Progress"

@@ -2,6 +2,7 @@ package com.truenorth.citizenshiptest.ui.screens
 
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
@@ -278,6 +279,10 @@ private fun daysUntilLabel(testDateMillis: Long): String {
     // comparing raw millis directly would be off by a day in timezones behind UTC.
     val targetDate = Instant.fromEpochMilliseconds(testDateMillis).toLocalDateTime(TimeZone.UTC).date
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return daysUntilLabel(targetDate, today)
+}
+
+internal fun daysUntilLabel(targetDate: LocalDate, today: LocalDate): String {
     val days = today.daysUntil(targetDate)
     return when {
         days > 0 -> "$days"
