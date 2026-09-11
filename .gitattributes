@@ -1,0 +1,10 @@
+# Shell scripts must keep LF endings, or macOS fails with
+# "bad interpreter: /usr/bin/env bash^M" when the repo is cloned
+# from a Windows checkout.
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Never touch these.
+*.png binary
+*.jar binary
+*.keystore binary
