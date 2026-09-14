@@ -115,6 +115,21 @@ sdk.dir=$ANDROID_SDK
 PROPS
 cat "$REPO_ROOT/local.properties"
 
+say "Pinning the JDK for Gradle"
+# Xcode build phases run under /bin/sh and do NOT source ~/.zshrc, so an
+# exported JAVA_HOME only helps you in Terminal. When Xcode shells out to
+# ./gradlew the environment is nearly empty and Gradle dies with
+# "ERROR: JAVA_HOME is not set". Recording the JDK path in the user-level
+# Gradle properties works regardless of how Gradle was launched.
+GRADLE_USER_PROPS="$HOME/.gradle/gradle.properties"
+mkdir -p "$HOME/.gradle"
+if [ -f "$GRADLE_USER_PROPS" ]; then
+    grep -v '^org\.gradle\.java\.home=' "$GRADLE_USER_PROPS" > "$GRADLE_USER_PROPS.tmp" || true
+    mv "$GRADLE_USER_PROPS.tmp" "$GRADLE_USER_PROPS"
+fi
+echo "org.gradle.java.home=$JAVA_HOME" >> "$GRADLE_USER_PROPS"
+cat "$GRADLE_USER_PROPS"
+
 say "Warming up Gradle and compiling the shared framework for the simulator"
 cd "$REPO_ROOT"
 chmod +x ./gradlew
@@ -123,11 +138,12 @@ chmod +x ./gradlew
 say "Done"
 cat <<NEXT
 
-Add these to your shell so Xcode's build phase can find them:
+Gradle will find the JDK on its own now, including when Xcode invokes it.
+For your own Terminal use, add these to your shell:
 
-  echo 'export JAVA_HOME="$JAVA_HOME"'              >> ~/.zshrc
-  echo 'export ANDROID_HOME="$ANDROID_SDK"'         >> ~/.zshrc
-  echo 'export PATH="\$JAVA_HOME/bin:\$PATH"'        >> ~/.zshrc
+  echo 'export JAVA_HOME="$JAVA_HOME"'       >> ~/.zshrc
+  echo 'export ANDROID_HOME="$ANDROID_SDK"'  >> ~/.zshrc
+  echo 'export PATH="\$JAVA_HOME/bin:\$PATH"' >> ~/.zshrc
 
 Then open the project in Xcode:
 
