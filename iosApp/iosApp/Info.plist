@@ -4,5 +4,11 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- The app's only cryptography is HTTPS/TLS reached through Apple and
+	     Firebase APIs, which is exempt. Declaring it here means App Store
+	     Connect stops asking the export-compliance question on every upload
+	     and stops parking builds in "Missing Compliance". -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
