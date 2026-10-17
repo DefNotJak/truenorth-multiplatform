@@ -23,7 +23,7 @@ if ! have xcodebuild; then
     echo "On a managed cloud Mac it is usually preinstalled; check /Applications."
     exit 1
 fi
-xcodebuild -version | head -1
+xcodebuild -version
 # The command line tools must point at the real Xcode, not the standalone CLT.
 if ! xcode-select -p 2>/dev/null | grep -q "Xcode.app"; then
     echo "NOTE: xcode-select points at $(xcode-select -p 2>/dev/null || echo 'nothing')."
