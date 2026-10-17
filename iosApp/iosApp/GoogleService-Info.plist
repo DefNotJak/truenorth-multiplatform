@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDEs3x45puQ2cVeOoKvfWEsZLsqmf88FaU</string>
+	<key>GCM_SENDER_ID</key>
+	<string>907834401129</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.truenorth.citizenshiptest</string>
+	<key>PROJECT_ID</key>
+	<string>truenorth-citizenship-test</string>
+	<key>STORAGE_BUCKET</key>
+	<string>truenorth-citizenship-test.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:907834401129:ios:77e5ba4ce6527902a2ddf8</string>
+</dict>
+</plist>
