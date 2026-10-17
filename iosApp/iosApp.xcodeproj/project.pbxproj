@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n# Run-script phases get a near-empty environment and never source a shell\n# profile, so JAVA_HOME is unset here even when ./gradlew works in Terminal.\n# The wrapper needs a JVM just to start, before it can read\n# org.gradle.java.home. Find one the same way tools/mac-bootstrap.sh does.\nif [ ! -x \"${JAVA_HOME:-}/bin/java\" ]; then\n  for candidate in \"$(/usr/libexec/java_home 2>/dev/null)\" \"$HOME/truenorth-tools/jdk/Contents/Home\" \"/Applications/Android Studio.app/Contents/jbr/Contents/Home\"; do\n    if [ -x \"$candidate/bin/java\" ]; then\n      export JAVA_HOME=\"$candidate\"\n      break\n    fi\n  done\nfi\nif [ ! -x \"${JAVA_HOME:-}/bin/java\" ]; then\n  echo \"error: No JDK found. Run tools/mac-bootstrap.sh from the repo root first.\"\n  exit 1\nfi\nexport PATH=\"$JAVA_HOME/bin:$PATH\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

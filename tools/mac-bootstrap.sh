@@ -135,18 +135,34 @@ cd "$REPO_ROOT"
 chmod +x ./gradlew
 ./gradlew --no-daemon :shared:compileKotlinIosSimulatorArm64
 
+say "Exporting the toolchain into your shell profiles"
+# Terminal.app opens a login shell, and which profile that reads depends on
+# whether the account's shell is bash or zsh - so write both rather than
+# guessing. Idempotent: the previous block is stripped before rewriting.
+for profile in "$HOME/.bash_profile" "$HOME/.zprofile"; do
+    touch "$profile"
+    if grep -q '# >>> truenorth toolchain' "$profile" 2>/dev/null; then
+        sed '/# >>> truenorth toolchain/,/# <<< truenorth toolchain/d' "$profile" > "$profile.tmp"
+        mv "$profile.tmp" "$profile"
+    fi
+    cat >> "$profile" <<PROFILE
+# >>> truenorth toolchain
+export JAVA_HOME="$JAVA_HOME"
+export ANDROID_HOME="$ANDROID_SDK"
+export PATH="\$JAVA_HOME/bin:\$PATH"
+# <<< truenorth toolchain
+PROFILE
+    echo "updated $profile"
+done
+
 say "Done"
 cat <<NEXT
 
-Gradle will find the JDK on its own now, including when Xcode invokes it.
-For your own Terminal use, add these to your shell:
-
-  echo 'export JAVA_HOME="$JAVA_HOME"'       >> ~/.zshrc
-  echo 'export ANDROID_HOME="$ANDROID_SDK"'  >> ~/.zshrc
-  echo 'export PATH="\$JAVA_HOME/bin:\$PATH"' >> ~/.zshrc
-
-Then open the project in Xcode:
+Open a NEW Terminal window (or run: source ~/.bash_profile) so JAVA_HOME is
+set, then open the project in Xcode:
 
   open "$REPO_ROOT/iosApp/iosApp.xcodeproj"
+
+Xcode's build phase finds the JDK on its own, so it does not depend on this.
 
 NEXT
