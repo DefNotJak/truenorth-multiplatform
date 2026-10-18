@@ -24,3 +24,16 @@ the icon.
 
 Kept only for reference. If either is ever needed again, the full-size
 originals have to come from Play Console, or be remade.
+
+## App Store screenshots
+
+- **App Store Screenshots/** - 12 raw simulator captures at **1206x2622**, taken
+  on an **iPhone 17 Pro**. That size is "iPhone with Dynamic Island (medium
+  display)", which since October 2026 is the **only iPhone screenshot size Apple
+  requires**. An iPhone 17 Pro **Max** produces 1320x2868 and App Store Connect
+  rejects it outright, which cost a whole re-shoot the first time.
+- **App Store Screenshots Framed/** - the six composed for the listing, built by
+  `tools/make-store-screenshots.ps1` to match the Play Store set: #E0332A to
+  #A71519 vertical gradient, letter-spaced TRUENORTH wordmark, heavy white
+  caption, device bleeding off the bottom. Re-run the script to change captions
+  or swap which screens are used.
