@@ -450,7 +450,51 @@ needs a UIWindowScene that shared code cannot reach.
 
 ---
 
-## 12. Maintaining this document
+## 12. Public-facing URLs and contact details
+
+All four web pages are a GitHub Pages site served from the separate repo
+**`DefNotJak/truenorth-privacy-policy`**, which is *not* this repository. Editing
+them means editing that repo, and GitHub Pages republishes in about a minute.
+
+| Page | URL | Linked from |
+|---|---|---|
+| Privacy Policy | `https://defnotjak.github.io/truenorth-privacy-policy/` | App Store Connect privacy field, Play listing, `PrivacyConsentDialog` |
+| Terms of Service | `https://defnotjak.github.io/truenorth-privacy-policy/terms-of-service.html` | `PrivacyConsentDialog`, footer of the other pages |
+| Delete your account | `https://defnotjak.github.io/truenorth-privacy-policy/delete-account.html` | Play Data safety deletion URL, privacy policy |
+| Support | `https://defnotjak.github.io/truenorth-privacy-policy/support.html` | App Store Connect Support URL |
+
+The Support page carries an FAQ (password reset, account deletion, reporting a
+wrong answer, what the passes include) and the contact email. Note its title
+uses the **App Store** name, "Citizenship Test Canada", while the other three use
+the internal name.
+
+### Government links shown inside the app
+
+| URL | Where |
+|---|---|
+| `https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/test.html` | `InfoScreen`, `SettingsScreen` |
+| `https://www.canada.ca/en/immigration-refugees-citizenship/corporate/publications-manuals/discover-canada.html` | Play listing copy |
+
+### Contact
+
+| Purpose | Value |
+|---|---|
+| In-app feedback, support, data requests | `t.north.apps@gmail.com` (`FEEDBACK_EMAIL` in `SettingsScreen`) |
+| EU DSA trader phone, publicly displayed | `+1 647-600-9949` (a voip.ms line forwarding to mobile) |
+| EU DSA trader address, publicly displayed | 6-2160 Highway 7, Suite 234, Vaughan, ON L4K 1W6 (a virtual mailbox, deliberately not the home address) |
+
+### Standing rule for these pages
+
+**Every one of them must stay platform-neutral about purchases.** They were
+written when only Android existed, and all three originally said purchases were
+handled by Google Play Billing. On an iOS listing that invites a **Guideline
+3.1.1** question about non-Apple payment, which is a slow and painful rejection.
+Wording should name whichever store the app was downloaded from, Google Play on
+Android or the App Store on iOS. Check this whenever any of the four is edited.
+
+---
+
+## 13. Maintaining this document
 
 Update it in the same commit as any change to: the question bank's size or
 structure, where a piece of data is stored, the free/paid split, pricing or
