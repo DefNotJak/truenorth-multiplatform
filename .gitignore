@@ -17,3 +17,12 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Signing material. The KMP app has no release signing config yet, but it will
+# need one when it replaces the native app on Play. Ignoring these up front so
+# a future keystore cannot be committed by accident.
+keystore.properties
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
