@@ -1,0 +1,53 @@
+// Firestore security rules for the truenorth-citizenship-test project.
+//
+// These are the only thing protecting user data. The Firebase API key is
+// public by design, shipping inside every copy of the app and committed to
+// this repository, so anyone can reach the database. Rules are the control.
+//
+// Kept here because the Firebase Console has no diff, no history and no
+// review. A bad edit there is silent and irreversible on exactly the thing
+// that matters most.
+//
+// Transcribed from the console on 2026-10-29, matching the version deployed
+// 2026-08-12. If you change the rules in the console, update this file in the
+// same sitting, or it becomes misleading rather than useful.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in user may read and write only their own document. This holds
+    // the account email, the daily free-test counter, pass expiry, purchase
+    // tokens, favourites, flashcard progress and the test date.
+    //
+    // NOTE: this matches the user document ONLY, not subcollections. That is
+    // correct today because none exist, but the planned test-history sync adds
+    // users/{uid}/attempts/{attemptId}, which would be denied by default. See
+    // docs/plan-cloud-sync-test-history.md; the rule below has to be widened
+    // to {document=**} or a sibling match added before that work ships.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Question reports are write-only from the client. A user can file one but
+    // cannot forge it as someone else, because the userId in the new document
+    // must equal their own uid. Nobody can read, change or delete reports from
+    // the app at all; they are read by the developer in the console.
+    match /questionReports/{reportId} {
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if false;
+    }
+  }
+}
+
+// ACCEPTED RISK, recorded in docs/DECISIONS.md:
+//
+// A user can write ANY field to their own document, including
+// subscriptionExpiresAtMillis, so someone editing their own Firestore record
+// could grant themselves a pass. This is not a rules defect. The app writes
+// that field from the client because there is no backend, so no rule can
+// distinguish a legitimate grant from a forged one. Closing it would require
+// server-side receipt validation via Cloud Functions plus the Play Developer
+// API and the App Store Server API.
