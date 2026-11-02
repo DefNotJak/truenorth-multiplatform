@@ -29,48 +29,98 @@ available to them is that the app lost their data.
 
 Estimated a focused day, plus a second pass for two-device and offline testing.
 
-### 2. The keyboard covers the sign-up form
+### 2. The keyboard covers the sign-up form - DONE 2026-11-01
 
-**Confirmed in the code, not just reported.** `AuthScreen` has
-`verticalScroll(rememberScrollState())` but **`imePadding()` appears nowhere in
-the entire app**. A grep across `shared/src` returns no match for `imePadding`
-or `WindowInsets.ime`.
+Fixed, pending verification on a physical device.
 
-Without it the scrollable column has no idea the keyboard exists, so the bottom
-of the form sits underneath it and scrolling cannot bring it into view. Reported
-symptoms match exactly:
+`AuthScreen` had `verticalScroll(rememberScrollState())` but no `imePadding()`,
+and `imePadding` appeared **nowhere in the app**. A scrollable column with no
+IME inset has no idea the keyboard exists, so the bottom of the form sat
+underneath it and scrolling could not bring it into view. The serious part was
+not the Create Account button: on the **sign-in** screen the "Don't have an
+account? Sign Up" link was hidden, and sign-in is mandatory, so a new user hit
+a first-run dead end.
 
-- Part of the Confirm Password field and the **Create Account** button are
-  hidden behind the keyboard
-- On the sign-in screen the **"Don't have an account? Sign Up"** link is hidden,
-  so a new user cannot find the way to register
-- The user has to dismiss the keyboard to reach the submit button
+What changed, all in `AuthScreen.kt` unless noted:
 
-**That last one is the serious part.** A new user on the sign-in screen cannot
-see the link to create an account. For an app where sign-in is mandatory, that
-is a first-run dead end.
+- `.imePadding()` on the scrolling column, between `.padding(padding)` and
+  `.verticalScroll(...)`. The Scaffold consumes its own insets, so this adds
+  the keyboard height only and does not double-count the navigation bar.
+- `android:windowSoftInputMode="adjustResize"` on `MainActivity` in
+  `androidApp/src/main/AndroidManifest.xml`. `enableEdgeToEdge()` was already
+  being called, which is what actually makes Android dispatch IME insets, but
+  the Compose docs ask for `adjustResize` explicitly and OEM skins vary.
+- `imeAction` on all three fields, so the keyboard offers a way forward
+  instead of a bare return key: Email â Next, Password â Next when signing up
+  and Done when signing in, Confirm Password â Done.
+- `keyboardActions` moving focus with `LocalFocusManager`, and submitting on
+  Done.
+- The submit logic moved out of the `Button(onClick = { ... })` lambda into a
+  local `submit()`, so the button and the keyboard's Done key run the same
+  code instead of two copies. `canSubmit` was extracted for the same reason.
+  `submit()` also calls `focusManager.clearFocus()`, which drops the keyboard
+  on submit rather than leaving it over the result.
 
-**Likely fix:** add `.imePadding()` to the scrollable column in `AuthScreen`,
-and audit every other screen with a text field (`ReportQuestionDialog`,
-`SettingsScreen` feedback) for the same omission. Consider setting
-`contentWindowInsets` on the `Scaffold` rather than patching screen by screen.
+**Audited and deliberately left alone:** the only other text fields in the app
+are the note in `ReportQuestionDialog` and the password in the delete-account
+re-authentication dialog in `SettingsScreen`. Both sit inside a Material3
+`AlertDialog`, which gets its own window with `decorFitsSystemWindows = true`
+and is centred in the space the keyboard leaves, so neither needs
+`imePadding()`. The re-auth field also deliberately has **no** Done action:
+its confirm button is "Confirm & Delete", and a return key should not trigger
+account deletion.
 
-Small change, high impact, needs a device to verify.
+Still to do: run it on a physical phone. The behaviour depends on real IME
+insets, which the emulator and simulator approximate.
 
-### 3. Cursor movement by dragging on the keyboard
+### 3. Cursor movement by dragging on the keyboard - investigated 2026-11-01
 
-On iOS, long-pressing the keyboard turns it into a trackpad for moving the text
-cursor. It does not work in this app, so a user cannot reposition the cursor
-inside a long entry without tapping precisely.
+**The earlier note in this file was wrong** and is corrected here. It said this
+might not be fixable and the answer could be "wait for upstream". That was
+written from memory of old Compose Multiplatform bug reports and was not
+checked.
 
-**Honest assessment: this may not be fixable by us.** Compose Multiplatform
-renders its own text fields rather than using UIKit's, so system text-editing
-gestures are only available to the extent the framework implements them. This
-needs checking against the current Compose Multiplatform version before any
-promise is made, and the answer may be "wait for upstream".
+What is actually true:
 
-Lower priority than the two above, and the only one of the three where the
-outcome is uncertain.
+- JetBrains issue
+  [#4593](https://github.com/JetBrains/compose-multiplatform/issues/4593) is
+  the exact complaint ("iOS 17 hidden trackpad doesn't work in the TextFields").
+  It was **closed as completed on 3 June 2024**, via
+  compose-multiplatform-core PR #1312, "Initial iOS floating cursor support".
+- This project is on Compose Multiplatform **1.11.1**, well past that. Verified
+  directly rather than assumed: unpacking
+  `ui-iosSimulatorArm64Main-1.11.1.klib` from the Gradle cache shows
+  `beginFloatingCursorAtPoint`, `updateFloatingCursorAtPoint`,
+  `endFloatingCursor`, `floatingCursorTranslation` and `closestPositionToPoint`
+  all present. **The framework has the gesture.**
+
+So the question became why it did not work here, and the answer is that it was
+almost certainly tried on a password field.
+
+- The same klib shows Compose's iOS text input view sets `isSecureTextEntry`,
+  derived from the field's `KeyboardType`.
+- **iOS itself disables the floating cursor in secure text entry.** This is
+  Apple's behaviour, not a framework bug. Flutter has the identical report:
+  [flutter#122139](https://github.com/flutter/flutter/issues/122139), "Hold and
+  drag spacebar does not move cursor when `obscureText` is true".
+- Both of `AuthScreen`'s password fields used `KeyboardType.Password`, so both
+  were secure, so the gesture was blocked. That is correct while the password
+  is hidden.
+
+**Fixed:** the password fields now use `KeyboardType.Text` while
+`passwordVisible` is true. Tapping the eye icon already reveals the password on
+screen, so there is nothing left for secure text entry to protect, and dropping
+the secure flag brings the gesture back. `autoCorrectEnabled = false` and
+`capitalization = KeyboardCapitalization.None` went on at the same time, since
+a plain text keyboard would otherwise autocorrect and capitalise a password.
+
+**Not fixed, and not ours to fix:** a hidden password field still will not
+accept the gesture. Apple blocks it.
+
+Left to check on a device: the gesture in the app's two non-secure fields, the
+email field and the "Report an issue" note. If it fails there, that is a real
+upstream bug and worth filing against Compose Multiplatform with a version
+number. If it works, item 3 is finished.
 
 ---
 

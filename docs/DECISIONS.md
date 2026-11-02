@@ -232,3 +232,41 @@ public in 122 existing commits across public repositories.
 Existing history was left alone: rewriting it means force-pushing over published
 history across three repos, and the exposure is a Gmail address in commit
 metadata on a small project.
+
+### A revealed password uses a plain text keyboard
+*2026-11-01*
+
+While `passwordVisible` is true, the two `AuthScreen` password fields pass
+`KeyboardType.Text` instead of `KeyboardType.Password`, with
+`autoCorrectEnabled = false` and `capitalization = KeyboardCapitalization.None`.
+
+This looks like a security regression and is not one. Compose's iOS text input
+view derives `isSecureTextEntry` from the `KeyboardType`, and **iOS disables the
+keyboard drag-to-move-cursor gesture in secure text entry fields**. That is
+Apple's behaviour, not a framework bug; Flutter has the same report. So a
+password field could never support the gesture the owner asked for.
+
+The eye icon has already put the password on screen in plain text by the time
+this applies, so secure text entry is protecting nothing at that point. What it
+is still costing is the gesture. Rejected: leaving it as `Password` always,
+which keeps a flag with no remaining benefit; and removing the reveal toggle,
+which is worse for exactly the users who most need to check what they typed.
+
+The autocorrect and capitalisation flags are not optional extras here. A plain
+text keyboard would otherwise autocorrect and sentence-capitalise a password,
+which would be a real bug.
+
+### Keyboard insets are handled per screen, not globally
+*2026-11-01*
+
+`AuthScreen` carries `.imePadding()` on its scrolling column. The alternative
+considered and rejected was setting `contentWindowInsets` on the `Scaffold`, or
+applying it once somewhere central.
+
+Rejected because the app has only three text fields, and the other two are
+inside Material3 `AlertDialog`s, which get their own window and are centred in
+the space the keyboard leaves. A global change would alter the inset behaviour
+of every screen in the app, including ones that never take text input, to fix
+one screen. The cost of the per-screen approach is that a future screen with a
+text field can forget it, which is why this is recorded here and in
+`docs/SPECIFICATION.md` section 8 rather than left to be rediscovered.

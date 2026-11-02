@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,7 +36,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -58,12 +64,61 @@ fun AuthScreen(authRepository: AuthRepository) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
+
+    val canSubmit = !isLoading && email.isNotBlank() && password.isNotBlank() &&
+        (!isSignUp || confirmPassword.isNotBlank())
+
+    // Shared by the submit button and the keyboard's Done key, so the form can
+    // be sent without reaching for a button that may be under the keyboard.
+    fun submit() {
+        errorMessage = null
+        if (isSignUp) {
+            val complexityError = passwordComplexityError(password)
+            if (complexityError != null) {
+                errorMessage = complexityError
+                return
+            }
+            if (password != confirmPassword) {
+                errorMessage = "Passwords don't match."
+                return
+            }
+        }
+        focusManager.clearFocus()
+        isLoading = true
+        scope.launch {
+            try {
+                if (isSignUp) {
+                    authRepository.signUp(email.trim(), password)
+                    // Best-effort - a failure here shouldn't block account
+                    // creation, since the account itself already succeeded.
+                    try {
+                        authRepository.sendEmailVerification()
+                        snackbarHostState.showSnackbar("Account created! We sent a verification link to ${email.trim()}.")
+                    } catch (e: Exception) {
+                        snackbarHostState.showSnackbar("Account created, but the verification email couldn't be sent. You can resend it from Settings.")
+                    }
+                } else {
+                    authRepository.signIn(email.trim(), password)
+                }
+            } catch (e: Exception) {
+                errorMessage = friendlyAuthErrorMessage(e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Shrinks the scroll viewport by the keyboard's height. Without
+                // it the column has no idea the keyboard exists, so the bottom
+                // of the form sits under it and scrolling cannot reach it -
+                // including, on the sign-in screen, the only link to sign up.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -87,7 +142,13 @@ fun AuthScreen(authRepository: AuthRepository) {
                 onValueChange = { email = it; errorMessage = null },
                 label = { Text("Email") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -96,7 +157,21 @@ fun AuthScreen(authRepository: AuthRepository) {
                 onValueChange = { password = it; errorMessage = null },
                 label = { Text("Password") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    // KeyboardType.Password makes iOS flag the field as secure text
+                    // entry, and iOS disables the keyboard drag-to-move-cursor
+                    // gesture in secure fields. Once the user has revealed the
+                    // password there is nothing left to hide, so drop to a plain
+                    // text keyboard and the gesture comes back.
+                    keyboardType = if (passwordVisible) KeyboardType.Text else KeyboardType.Password,
+                    autoCorrectEnabled = false,
+                    capitalization = KeyboardCapitalization.None,
+                    imeAction = if (isSignUp) ImeAction.Next else ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    onDone = { if (canSubmit) submit() }
+                ),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -116,7 +191,15 @@ fun AuthScreen(authRepository: AuthRepository) {
                     onValueChange = { confirmPassword = it; errorMessage = null },
                     label = { Text("Confirm Password") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (passwordVisible) KeyboardType.Text else KeyboardType.Password,
+                        autoCorrectEnabled = false,
+                        capitalization = KeyboardCapitalization.None,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (canSubmit) submit() }
+                    ),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -133,43 +216,8 @@ fun AuthScreen(authRepository: AuthRepository) {
 
             Spacer(modifier = Modifier.height(12.dp))
             Button(
-                onClick = {
-                    errorMessage = null
-                    if (isSignUp) {
-                        val complexityError = passwordComplexityError(password)
-                        if (complexityError != null) {
-                            errorMessage = complexityError
-                            return@Button
-                        }
-                        if (password != confirmPassword) {
-                            errorMessage = "Passwords don't match."
-                            return@Button
-                        }
-                    }
-                    isLoading = true
-                    scope.launch {
-                        try {
-                            if (isSignUp) {
-                                authRepository.signUp(email.trim(), password)
-                                // Best-effort - a failure here shouldn't block account
-                                // creation, since the account itself already succeeded.
-                                try {
-                                    authRepository.sendEmailVerification()
-                                    snackbarHostState.showSnackbar("Account created! We sent a verification link to ${email.trim()}.")
-                                } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("Account created, but the verification email couldn't be sent. You can resend it from Settings.")
-                                }
-                            } else {
-                                authRepository.signIn(email.trim(), password)
-                            }
-                        } catch (e: Exception) {
-                            errorMessage = friendlyAuthErrorMessage(e)
-                        } finally {
-                            isLoading = false
-                        }
-                    }
-                },
-                enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && (!isSignUp || confirmPassword.isNotBlank()),
+                onClick = { submit() },
+                enabled = canSubmit,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isLoading) {

@@ -348,7 +348,7 @@ Email and password via Firebase Auth. **Sign-in is mandatory**; `App.kt` shows
 `AuthRepository` covers sign-up, sign-in, password reset, email verification,
 reload, sign-out, account deletion and re-authentication.
 
-Two behaviours worth knowing:
+Three behaviours worth knowing:
 
 - **Email-verified status is cached client-side.** There is no push when the
   user clicks the link in their inbox, so anything displaying verification
@@ -356,6 +356,12 @@ Two behaviours worth knowing:
 - **Account deletion requires a recent sign-in.** If the session is stale,
   Firebase throws a re-authentication-required error; the caller must prompt for
   the password via `reauthenticate()` and retry.
+- **Keyboard handling is explicit, not inherited.** The form column carries
+  `.imePadding()`, without which the bottom of the form (including the only
+  link to sign up) sits under the keyboard unreachably. The password fields
+  switch from `KeyboardType.Password` to `KeyboardType.Text` while the password
+  is revealed, because iOS flags a `Password` keyboard as secure text entry and
+  disables the drag-to-move-cursor gesture in secure fields.
 
 ---
 
