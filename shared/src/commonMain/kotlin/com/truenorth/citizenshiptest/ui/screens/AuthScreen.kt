@@ -36,8 +36,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -149,7 +152,14 @@ fun AuthScreen(authRepository: AuthRepository) {
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
-                modifier = Modifier.fillMaxWidth()
+                // Tells the password manager what this field holds. Without a
+                // content type the field is invisible to Google Password
+                // Manager and iCloud Keychain, so they never offer to save or
+                // fill it, and the user types everything by hand. That absence
+                // is most of why this screen felt dated.
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentType = ContentType.Username + ContentType.EmailAddress }
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -181,7 +191,15 @@ fun AuthScreen(authRepository: AuthRepository) {
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                // NewPassword when signing up, Password when signing in. This
+                // is the distinction that makes a manager offer to *generate
+                // and save* a password on one screen and *fill* it on the
+                // other, rather than doing the wrong one of the two.
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentType = if (isSignUp) ContentType.NewPassword else ContentType.Password
+                    }
             )
 
             if (isSignUp) {
@@ -201,7 +219,9 @@ fun AuthScreen(authRepository: AuthRepository) {
                         onDone = { if (canSubmit) submit() }
                     ),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentType = ContentType.NewPassword }
                 )
             }
 
