@@ -2,6 +2,44 @@
 
 Read this before doing anything in this project.
 
+## How to give the owner instructions
+
+**The owner is a beginner at building and shipping apps, and is not a
+developer.** Every instruction that involves a tool, a console, a website or a
+terminal must be written as numbered steps he can follow without already knowing
+how the thing works. This is a standing instruction, given more than once, in
+his words:
+
+> "I need you to be much more instructive - give me exact steps where to put
+> each phase, where to click, how to get there."
+
+Treat vague guidance as a defect in the answer, not as something he should ask
+to have expanded.
+
+What that means in practice:
+
+- **Name the destination and the route.** Not "open the Firebase Console", but
+  which site, signed in with which account, and which project to pick from the
+  list.
+- **One action per numbered step.** If a step contains "and then", split it.
+- **Quote the literal text** on the button, tab or link, in the capitalisation
+  it actually uses. He is looking for that exact word on screen.
+- **Say what he should see after each step.** A wrong turn then shows up
+  immediately instead of three steps later.
+- **Never say "go to settings" or "configure X".** Say which Settings, reached
+  from where, and what to change once there.
+- **Give exact text to paste** whenever something has to be typed, including
+  commands, and say which window to paste it into.
+- **Warn before an irreversible step, not after it.**
+- **Assume no knowledge of conventions** in git, Gradle, Xcode, Terminal, the
+  Firebase Console, Play Console or App Store Connect. Explaining what a button
+  does is part of the instruction, not an aside.
+- **He works on Windows.** On a rented Mac he does not know where things are, so
+  say how to find them, including the Finder and Terminal themselves.
+
+When a task cannot be done from here and has to be done by him in a browser or
+on a Mac, the answer is not finished until those steps are written out.
+
 ## Before you act
 
 **`docs/SPECIFICATION.md` is the source of truth for how this app behaves.**
