@@ -4,20 +4,15 @@
 // public by design, shipping inside every copy of the app and committed to
 // this repository, so anyone can reach the database. Rules are the control.
 //
-// Kept here because the Firebase Console has no diff, no history and no
-// review. A bad edit there is silent and irreversible on exactly the thing
-// that matters most.
+// Kept here because the Firebase Console has no diff and no review. It does
+// keep a timestamped version list down the left of the Rules tab, which you can
+// select and roll back to, so an edit is recoverable. But a list of timestamps
+// does not tell you what changed between two of them, or why.
 //
-// Transcribed from the console on 2026-10-29, matching the version deployed
-// 2026-08-12. If you change the rules in the console, update this file in the
-// same sitting, or it becomes misleading rather than useful.
-//
-// !! THE ATTEMPTS RULE BELOW IS NOT YET DEPLOYED as of 2026-11-01 !!
-// users/{userId}/attempts exists only in this file. Until it is pasted into the
-// Firebase Console and published, every test-history sync write is denied. It
-// fails silently in the background: no crash, no message, no error the user
-// could report. The only symptom is that history never appears on a second
-// device, which looks exactly like the bug this feature was built to fix.
+// DEPLOYED. This file matches the version published 2026-11-01 at 9:17 PM,
+// which added the users/{userId}/attempts block for test history sync. If you
+// change the rules in the console, update this file in the same sitting, or it
+// becomes misleading rather than useful.
 
 rules_version = '2';
 

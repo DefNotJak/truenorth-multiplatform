@@ -63,13 +63,11 @@ Three hazards found while building it that the plan had not anticipated:
 
 #### Before this ships
 
-**1. Deploy the Firestore rule.** `firestore.rules` now contains a
-`users/{userId}/attempts/{attemptId}` block that exists **only in that file**.
-Nested match blocks do not inherit the parent's allow, so until it is pasted
-into the Firebase Console and published, every sync write is denied. It fails
-silently in the background: no crash, no message, nothing the user could report.
-The only symptom is history never appearing on a second device, which looks
-exactly like the bug this was built to fix.
+**1. Deploy the Firestore rule. DONE 2026-11-01, 9:17 PM.** The
+`users/{userId}/attempts/{attemptId}` block is published and live, confirmed
+against the console. Nested match blocks do not inherit the parent's allow, so
+without it every sync write would have been denied, silently, with history
+simply never appearing on a second device.
 
 **2. Test the Room migration on a real upgrade.** Install the current store
 build, take a test so there is history, then install this build over it. The
