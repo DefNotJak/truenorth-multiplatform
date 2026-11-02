@@ -340,7 +340,49 @@ bug displayed $14.99/3 as "$4.99" instead of "$5.00".
 
 ---
 
+## 7b. Test history sync
+
+Added 2026-11-01. Room remains the source of truth for every read in the app;
+Firestore is a mirror that exists so history survives a change of phone.
+
+**Firestore shape**
+
+- `users/{uid}/attempts/{attemptId}` - one document per attempt, holding
+  `timestampMillis`, `correctCount`, `totalQuestions`, and category stats
+  denormalised as three parallel lists (`categoryNames`, `categoryCorrect`,
+  `categoryTotal`). Three primitive lists rather than one list of maps because
+  `List<String>` and `List<Long>` are the only collection shapes proven against
+  GitLive's encoder in this codebase.
+- `users/{uid}.missedQuestionIds` - the derived Smart Review set. On the user
+  document rather than in a subcollection: bounded at 589 and read on every Home
+  render, so it should arrive with the rest of the user document.
+- `users/{uid}.historySchemaVersion` - currently 1.
+
+`attemptId` is derived from the attempt's own contents
+(`"{timestampMillis}-{correctCount}-{totalQuestions}"`), never a Firestore
+auto-id. That is what makes uploads safe to retry and what lets two devices
+merge to the union instead of duplicating.
+
+**Four invariants. Breaking any of them loses user data.**
+
+1. **Merge, never replace.** Restore inserts cloud attempts that are not already
+   local and touches nothing else.
+2. **Local question results win.** A question answered correctly on this device
+   is not pushed back into Smart Review because an older cloud snapshot still
+   lists it as missed.
+3. **`syncMissedQuestionIds()` only runs after a successful restore.** It
+   replaces the whole array, so running it on an unrestored device empties the
+   account's Smart Review set.
+4. **`sync_state.ownerUid` is checked before anything uploads.** Otherwise one
+   person's history goes into another person's account.
+
+**Account deletion** must call `deleteAllCloudHistory()` before deleting the
+user document. Firestore does not cascade.
+
+---
+
 ## 8. Authentication
+
 
 Email and password via Firebase Auth. **Sign-in is mandatory**; `App.kt` shows
 `AuthScreen` whenever the current user is null, and `AppNavHost` otherwise.

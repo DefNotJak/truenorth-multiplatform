@@ -270,3 +270,61 @@ of every screen in the app, including ones that never take text input, to fix
 one screen. The cost of the per-screen approach is that a future screen with a
 text field can forget it, which is why this is recorded here and in
 `docs/SPECIFICATION.md` section 8 rather than left to be rediscovered.
+
+### Test history is mirrored to Firestore, not moved there
+*2026-11-01*
+
+The three Room tables stay the source of truth for every read. Firestore gets a
+copy. Rejected: replacing Room with Firestore, which would have meant routing
+the Home stats row and the Progress chart through listeners that cold-start
+empty, and re-testing every screen that touches history. A mirror can be
+reverted by deleting one class; a migration cannot.
+
+Attempt documents are keyed by their own contents
+(`"{timestampMillis}-{correctCount}-{totalQuestions}"`) rather than a Firestore
+auto-id, so an upload that fails after writing but before recording success
+overwrites one document instead of inventing a second attempt. Two attempts in
+the same millisecond with identical scores collide and collapse into one; a
+practice test runs for minutes, so this cannot realistically happen, and the
+alternative duplicates on every retry.
+
+### Local history is wiped when a different account signs in
+*2026-11-01*
+
+`sync_state.ownerUid` records which uid the Room database belongs to. If the
+signed-in uid differs, local history is deleted before anything can upload it.
+
+This destroys data, deliberately. The alternative is worse in kind rather than
+degree: without the check, the first person's unsynced attempts are uploaded
+into the second person's cloud account, permanently, and there is no mechanism
+by which either of them could ever discover why their numbers are wrong. They
+cannot be rescued before the wipe, because by then the session belongs to the
+second person and the security rules correctly refuse to let them write to the
+first person's document.
+
+Scope of the loss: only attempts that never reached the cloud, and only when
+someone signs out and a different account signs in on the same device. Before
+this change those rows were not destroyed, but they were visible to the second
+person, which was already a bug.
+
+Known gap: a device that already had history when it upgraded to schema 2 has
+`ownerUid` null, so whoever signs in first claims it. Closing that would need
+ownership information the old schema never recorded.
+
+### `syncMissedQuestionIds()` is gated on a successful restore
+*2026-11-01*
+
+The Smart Review set is written as a whole-array replace, not `arrayUnion`,
+because answering a previously missed question correctly has to remove it; a
+union would grow monotonically until Smart Review served questions the user had
+already mastered.
+
+That makes it destructive, which matters in one specific sequence: new device,
+cold start, restore fails on a dead network, user backgrounds and resumes, and
+the resume path pushes the empty local set over the real one. Smart Review is
+then empty for that account on every device, permanently, and the user has paid
+for it. A session flag set by a successful restore is what prevents this.
+
+Uploading attempts is deliberately *not* gated the same way. It only ever adds
+documents, so running it before a restore is harmless, and gating it would
+block the one path that carries an existing user's local-only history up.

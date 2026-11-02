@@ -1,6 +1,14 @@
 # Plan: sync test history to the cloud
 
-**Status:** not started. Written 2026-10-18.
+**Status:** implemented 2026-11-01, not yet verified on a device. Written
+2026-10-18.
+
+This file is kept as the design record. For what was actually built, the three
+hazards this plan did not anticipate, and the two things that must happen before
+it works, see `docs/BACKLOG.md` item 1 and `docs/SPECIFICATION.md` section 7b.
+Where the two disagree, the code and the specification are right and this file
+is the older thought.
+
 
 ## The problem, stated precisely
 

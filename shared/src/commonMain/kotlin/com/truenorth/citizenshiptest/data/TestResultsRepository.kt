@@ -12,7 +12,10 @@ import kotlin.time.Clock
 @Composable
 expect fun rememberTestResultsRepository(): TestResultsRepository
 
-class TestResultsRepository(private val dao: TestAttemptDao) {
+// The DAO is internal rather than private so TestHistorySyncRepository can
+// share the same instance. Two repositories over one DAO, rather than this one
+// growing a Firestore dependency it has no other use for.
+class TestResultsRepository(internal val dao: TestAttemptDao) {
 
     suspend fun saveAttempt(
         correctCount: Int,

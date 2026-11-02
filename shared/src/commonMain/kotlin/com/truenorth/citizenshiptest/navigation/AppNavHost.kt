@@ -24,6 +24,7 @@ import com.truenorth.citizenshiptest.data.FlashcardReviewRepository
 import com.truenorth.citizenshiptest.data.ProductPrice
 import com.truenorth.citizenshiptest.data.PurchaseUpdate
 import com.truenorth.citizenshiptest.data.QuestionReportRepository
+import com.truenorth.citizenshiptest.data.TestHistorySyncRepository
 import com.truenorth.citizenshiptest.data.ThemeMode
 import com.truenorth.citizenshiptest.data.UsageRepository
 import com.truenorth.citizenshiptest.data.UsageState
@@ -62,6 +63,8 @@ fun AppNavHost(
     val favoritesRepository = remember(userId) { FavoriteQuestionsRepository(userId) }
     val reviewRepository = remember(userId) { FlashcardReviewRepository(userId) }
     val reportRepository = remember(userId) { QuestionReportRepository(userId) }
+    // Shares the DAO with `repository`, so both see the same local rows.
+    val historySyncRepository = remember(userId) { TestHistorySyncRepository(userId, repository.dao) }
     val practiceTestPreferences = rememberPracticeTestPreferencesRepository()
     val savedPracticeConfig by practiceTestPreferences.config.collectAsState(initial = PracticeTestConfig())
     val reviewPromptRepository = rememberReviewPromptRepository()
@@ -118,7 +121,34 @@ fun AppNavHost(
             billingRepository.connect()
             handlePurchases(billingRepository.queryExistingPurchases())
         }
+        // Catches anything a process kill or a dead network left behind. A test
+        // finished in aeroplane mode uploads here rather than being lost.
+        scope.launch {
+            try {
+                historySyncRepository.uploadPending()
+                historySyncRepository.syncMissedQuestionIds()
+            } catch (e: Exception) {
+                // Retried on the next resume.
+            }
+        }
         onPauseOrDispose { }
+    }
+
+    // Test history lives in Room, which is per-device, so a new phone starts
+    // empty until this runs. Keyed on userId rather than guarded by a flag:
+    // LaunchedEffect already runs once per key, and the key is the thing that
+    // actually matters here, since a different account needs a different sync.
+    //
+    // Swallowed on purpose. Sync is a convenience layered over local storage
+    // that has already succeeded, and the app has to work offline and on a
+    // first launch before the Firestore rules have ever been exercised. Local
+    // rows stay unsynced and the next resume retries them.
+    LaunchedEffect(userId) {
+        try {
+            historySyncRepository.syncForSignedInUser()
+        } catch (e: Exception) {
+            // Retried on resume.
+        }
     }
 
     val onSelectPlan: (String) -> Unit = { productId -> billingRepository.launchPurchase(productId) }
@@ -253,6 +283,16 @@ fun AppNavHost(
                             reviewPromptRepository.markReviewRequested()
                             reviewPromptRepository.requestReviewFlow()
                         }
+                        // Last, so a sync problem cannot delay the local save,
+                        // the free-test counter or the review prompt. Reads the
+                        // missed set back out of Room rather than from the
+                        // collected state, which may not have recomposed yet.
+                        try {
+                            historySyncRepository.uploadPending()
+                            historySyncRepository.syncMissedQuestionIds()
+                        } catch (e: Exception) {
+                            // Retried on the next resume.
+                        }
                     }
                 }
             )
@@ -317,6 +357,11 @@ fun AppNavHost(
                 usageState = usageState,
                 onSetTestDate = onSetTestDate,
                 onDeleteAccount = {
+                    // Before deleteUserData and while still signed in: Firestore
+                    // does not cascade, so deleting the user document would
+                    // orphan the attempts subcollection with nothing above it to
+                    // show that it is still there.
+                    historySyncRepository.deleteAllCloudHistory()
                     usageRepository.deleteUserData()
                     repository.clearAllData()
                     authRepository.deleteAccount()

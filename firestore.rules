@@ -11,6 +11,13 @@
 // Transcribed from the console on 2026-10-29, matching the version deployed
 // 2026-08-12. If you change the rules in the console, update this file in the
 // same sitting, or it becomes misleading rather than useful.
+//
+// !! THE ATTEMPTS RULE BELOW IS NOT YET DEPLOYED as of 2026-11-01 !!
+// users/{userId}/attempts exists only in this file. Until it is pasted into the
+// Firebase Console and published, every test-history sync write is denied. It
+// fails silently in the background: no crash, no message, no error the user
+// could report. The only symptom is that history never appears on a second
+// device, which looks exactly like the bug this feature was built to fix.
 
 rules_version = '2';
 
@@ -20,14 +27,20 @@ service cloud.firestore {
     // A signed-in user may read and write only their own document. This holds
     // the account email, the daily free-test counter, pass expiry, purchase
     // tokens, favourites, flashcard progress and the test date.
-    //
-    // NOTE: this matches the user document ONLY, not subcollections. That is
-    // correct today because none exist, but the planned test-history sync adds
-    // users/{uid}/attempts/{attemptId}, which would be denied by default. See
-    // docs/plan-cloud-sync-test-history.md; the rule below has to be widened
-    // to {document=**} or a sibling match added before that work ships.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Test history, one document per attempt, added 2026-11-01. Same owner
+      // check as the parent document; nested match blocks do NOT inherit the
+      // parent allow, so without this the subcollection is denied by default
+      // and sync fails silently in the background with no visible symptom
+      // beyond history never appearing on a new device.
+      //
+      // Named explicitly rather than widening the parent to {document=**},
+      // which would also authorise every subcollection nobody has designed yet.
+      match /attempts/{attemptId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // Question reports are write-only from the client. A user can file one but

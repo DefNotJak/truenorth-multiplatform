@@ -13,21 +13,76 @@ See `docs/DECISIONS.md` for why existing things are the way they are, and
 Raised 2026-10-31. The user asked for all three to be first in line after
 launch.
 
-### 1. Test history must survive a change of phone
+### 1. Test history must survive a change of phone - DONE 2026-11-01
 
-**Status:** planned in detail, not started. See
-`docs/plan-cloud-sync-test-history.md`.
+Implemented per `docs/plan-cloud-sync-test-history.md`. Compiles and unit tests
+pass on all three targets. **Two things stand between this and working:** the
+Firestore rule has to be deployed, and the Room migration has to be run on a
+real upgrade. Neither can be done from here. See "Before this ships" below.
 
-`test_attempts`, `category_stats` and `question_results` live in Room on the
-device. A user who changes phone keeps their pass, favourites, flashcard
-progress and test date, but loses their **test history, the progress chart, the
-category breakdown, and Smart Review**.
+Room stays the source of truth for every read; Firestore is a mirror. No screen
+changed.
 
-**Smart Review is a paid feature.** Someone pays $14.99, upgrades their phone,
-signs in, and finds it empty with no explanation. The most reasonable conclusion
-available to them is that the app lost their data.
+- `test_attempts.syncedAtMillis`, nullable, marks what still needs uploading.
+  Every pre-existing row gets null, which is what carries an existing user's
+  local-only history up on first launch instead of stranding it.
+- `sync_state`, a one-row table holding the uid the local database belongs to.
+- Room 1 to 2 migration written by hand. `fallbackToDestructiveMigration` would
+  have been one line and would have wiped the history this feature exists to
+  save, on every install, at the moment of upgrade. `exportSchema` is now on and
+  `shared/schemas/...AppDatabase/2.json` is checked in.
+- `TestHistorySync.kt` holds the pure logic: deterministic attempt ids, the
+  union merge, the missed-set filter. 17 tests in `commonTest`.
+- `TestHistorySyncRepository` does the Firestore work: upload, restore, the
+  missed-set mirror, and cloud deletion on account delete.
+- Wired in `AppNavHost`: restore once per `userId`, upload after each saved
+  test, upload again on resume. All fire-and-forget inside try/catch, because a
+  sync failure must never touch a practice test.
 
-Estimated a focused day, plus a second pass for two-device and offline testing.
+Three hazards found while building it that the plan had not anticipated:
+
+1. **Two accounts on one device.** Room is per-device and signing out does not
+   clear it, so `uploadPending()` would have pushed the first person's attempts
+   into the second person's account, permanently. `sync_state.ownerUid` now
+   clears local history when the signed-in uid changes. The trade-off is real
+   and accepted: attempts the first person never managed to sync are destroyed
+   rather than contaminating another account. They cannot be rescued first,
+   because the rules correctly refuse to let the second person write to the
+   first person's document.
+2. **The missed-set write is destructive.** `syncMissedQuestionIds()` replaces
+   the whole array, because answering a question correctly has to remove it. On
+   a new device whose restore had just failed on a bad network, the resume path
+   would have pushed an empty array over the real set and emptied Smart Review
+   for the account for good. It is now guarded behind a successful restore.
+   Uploading attempts needs no guard, since it only ever adds documents.
+3. **Firestore does not cascade.** Deleting `users/{uid}` leaves its `attempts`
+   subcollection in place, reachable and billable, with nothing above it to show
+   it exists. Account deletion would have kept the test history of someone who
+   asked to be forgotten. `deleteAllCloudHistory()` now runs first, while the
+   user is still signed in and the rules still authorise it.
+
+#### Before this ships
+
+**1. Deploy the Firestore rule.** `firestore.rules` now contains a
+`users/{userId}/attempts/{attemptId}` block that exists **only in that file**.
+Nested match blocks do not inherit the parent's allow, so until it is pasted
+into the Firebase Console and published, every sync write is denied. It fails
+silently in the background: no crash, no message, nothing the user could report.
+The only symptom is history never appearing on a second device, which looks
+exactly like the bug this was built to fix.
+
+**2. Test the Room migration on a real upgrade.** Install the current store
+build, take a test so there is history, then install this build over it. The
+migration SQL is character-identical to what Room generates for the entities,
+checked against the exported schema, but "identical to the generated statement"
+is not the same as "ran successfully on a device". If it is wrong the app
+crashes on open for every existing user, which makes this the highest-stakes
+item in the change.
+
+**3. The rest of the manual list**, from the plan: force-quit before sync and
+confirm it uploads later; sign in on a second device; take tests on both and
+confirm the union; aeroplane mode; and an existing user with local-only history
+whose first launch must upload it rather than wipe it.
 
 ### 2. The keyboard covers the sign-up form - DONE 2026-11-01
 
