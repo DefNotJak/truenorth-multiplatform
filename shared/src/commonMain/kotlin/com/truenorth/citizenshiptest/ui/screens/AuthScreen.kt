@@ -1,7 +1,9 @@
 package com.truenorth.citizenshiptest.ui.screens
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -42,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -76,6 +81,7 @@ fun AuthScreen(authRepository: AuthRepository) {
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val parkFocusHere = remember { FocusRequester() }
 
     // Both calls, deliberately, everywhere the keyboard should go away.
     // clearFocus() ends the text input session, which on some devices and
@@ -84,8 +90,16 @@ fun AuthScreen(authRepository: AuthRepository) {
     // directly. Neither one is reliable alone across the range of Android
     // keyboards people actually use.
     fun dismissKeyboard() {
+        // Park focus on a target that cannot type, rather than clearing it.
+        //
+        // clearFocus() genuinely clears it, and then the focus system hands it
+        // straight back to the first focusable on screen, which is the email
+        // field, which reopens the keyboard one frame later. Measured on a
+        // Galaxy A5 running Android 8: focus false at +7ms, focus true again at
+        // +26ms. Parking it somewhere harmless is what makes it stick. Never
+        // reproduced on a tall modern phone, so do not simplify this back.
+        parkFocusHere.requestFocus()
         keyboardController?.hide()
-        focusManager.clearFocus()
     }
     // Compose Multiplatform has no isImeVisible in commonMain, so read the
     // inset directly. This also tracks the show/hide animation rather than
@@ -155,10 +169,19 @@ fun AuthScreen(authRepository: AuthRepository) {
                 // whole screen click semantics, so TalkBack would announce the
                 // entire form as one big button. Text fields consume their own
                 // taps, so tapping a field still focuses it as before.
+                .verticalScroll(rememberScrollState())
+                // AFTER verticalScroll, not before, and the order is the whole fix.
+                //
+                // Within one modifier chain the later entry is the inner one and
+                // sees pointer events first. With this placed before the scroll,
+                // the scrollable node saw every touch first, and on a screen
+                // where the form actually overflows it claims the gesture, so
+                // the tap detector never fired. That is why this worked on a
+                // tall phone, where the form fits and the scroll has no range,
+                // and did nothing at all on a short one.
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = { dismissKeyboard() })
                 }
-                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -172,6 +195,15 @@ fun AuthScreen(authRepository: AuthRepository) {
             //
             // Nothing is lost by hiding it: the fields are labelled and the
             // button says either Sign In or Create Account.
+            // Invisible, and not decoration: this is where focus goes when the
+            // keyboard is dismissed. See dismissKeyboard() above.
+            Box(
+                modifier = Modifier
+                    .size(1.dp)
+                    .focusRequester(parkFocusHere)
+                    .focusable()
+            )
+
             if (!keyboardVisible) {
                 Text(
                     text = "TrueNorth",
