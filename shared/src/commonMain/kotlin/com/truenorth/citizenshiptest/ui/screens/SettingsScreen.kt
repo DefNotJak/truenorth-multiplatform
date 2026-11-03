@@ -377,7 +377,10 @@ fun SettingsScreen(
             }
             item {
                 Text(
-                    text = "TrueNorth v1.0",
+                    // The real build, not a literal. The hardcoded "v1.0" that used
+                    // to be here never changed, so the one place anyone would look to
+                    // check which build they were running always said the same thing.
+                    text = "TrueNorth $appVersionLabel",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
