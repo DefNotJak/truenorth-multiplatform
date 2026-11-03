@@ -45,6 +45,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +75,18 @@ fun AuthScreen(authRepository: AuthRepository) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Both calls, deliberately, everywhere the keyboard should go away.
+    // clearFocus() ends the text input session, which on some devices and
+    // keyboards also hides the IME and on others does not, leaving the keyboard
+    // sitting over a form that no longer has focus. hide() asks the IME
+    // directly. Neither one is reliable alone across the range of Android
+    // keyboards people actually use.
+    fun dismissKeyboard() {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
     // Compose Multiplatform has no isImeVisible in commonMain, so read the
     // inset directly. This also tracks the show/hide animation rather than
     // flipping at the end of it, so the header leaves as the keyboard arrives.
@@ -98,7 +111,7 @@ fun AuthScreen(authRepository: AuthRepository) {
                 return
             }
         }
-        focusManager.clearFocus()
+        dismissKeyboard()
         isLoading = true
         scope.launch {
             try {
@@ -143,7 +156,7 @@ fun AuthScreen(authRepository: AuthRepository) {
                 // entire form as one big button. Text fields consume their own
                 // taps, so tapping a field still focuses it as before.
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                    detectTapGestures(onTap = { dismissKeyboard() })
                 }
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
