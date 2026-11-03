@@ -1,5 +1,6 @@
 package com.truenorth.citizenshiptest.ui.screens
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentType
@@ -131,6 +133,18 @@ fun AuthScreen(authRepository: AuthRepository) {
                 // of the form sits under it and scrolling cannot reach it -
                 // including, on the sign-in screen, the only link to sign up.
                 .imePadding()
+                // Tap any empty area to put the keyboard away, which also
+                // brings the header back. Every other app does this, and once
+                // the form stopped needing to scroll it was the only thing
+                // left making the screen feel stuck.
+                //
+                // pointerInput rather than clickable: clickable would give the
+                // whole screen click semantics, so TalkBack would announce the
+                // entire form as one big button. Text fields consume their own
+                // taps, so tapping a field still focuses it as before.
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                }
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
