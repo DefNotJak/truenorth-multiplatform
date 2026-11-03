@@ -2,11 +2,14 @@ package com.truenorth.citizenshiptest.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -38,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
@@ -55,7 +59,7 @@ import dev.gitlive.firebase.auth.FirebaseAuthWeakPasswordException
 import com.truenorth.citizenshiptest.data.AuthRepository
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AuthScreen(authRepository: AuthRepository) {
     var isSignUp by rememberSaveable { mutableStateOf(false) }
@@ -68,6 +72,11 @@ fun AuthScreen(authRepository: AuthRepository) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
+    // Compose Multiplatform has no isImeVisible in commonMain, so read the
+    // inset directly. This also tracks the show/hide animation rather than
+    // flipping at the end of it, so the header leaves as the keyboard arrives.
+    val density = LocalDensity.current
+    val keyboardVisible = WindowInsets.ime.getBottom(density) > 0
 
     val canSubmit = !isLoading && email.isNotBlank() && password.isNotBlank() &&
         (!isSignUp || confirmPassword.isNotBlank())
@@ -127,18 +136,29 @@ fun AuthScreen(authRepository: AuthRepository) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "TrueNorth",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = if (isSignUp) "Create an account to get started" else "Sign in to track your progress",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
+            // The header is the first thing to go when the keyboard is up. At
+            // that moment it is decoration, and on a shorter phone or at a
+            // larger display size it is the difference between the whole form
+            // fitting above the keyboard and the user having to scroll a login
+            // form, which nobody expects to have to do. imePadding() alone only
+            // makes the form reachable; this is what makes it visible.
+            //
+            // Nothing is lost by hiding it: the fields are labelled and the
+            // button says either Sign In or Create Account.
+            if (!keyboardVisible) {
+                Text(
+                    text = "TrueNorth",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = if (isSignUp) "Create an account to get started" else "Sign in to track your progress",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+            }
 
             OutlinedTextField(
                 value = email,
