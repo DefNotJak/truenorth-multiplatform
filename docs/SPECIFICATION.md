@@ -384,13 +384,48 @@ user document. Firestore does not cascade.
 ## 8. Authentication
 
 
-Email and password via Firebase Auth. **Sign-in is mandatory**; `App.kt` shows
-`AuthScreen` whenever the current user is null, and `AppNavHost` otherwise.
+Email and password via Firebase Auth, plus Sign in with Google on Android.
+**Sign-in is mandatory**; `App.kt` shows `AuthScreen` whenever the current user
+is null, and `AppNavHost` otherwise.
 
-`AuthRepository` covers sign-up, sign-in, password reset, email verification,
-reload, sign-out, account deletion and re-authentication.
+`AuthRepository` covers sign-up, sign-in, Google sign-in, password reset, email
+verification, reload, sign-out, account deletion and re-authentication.
 
-Three behaviours worth knowing:
+### Sign in with Google
+
+`GoogleSignIn` is an `expect class` with the usual `rememberGoogleSignIn()`
+companion. The Android actual uses Credential Manager
+(`androidx.credentials` plus `googleid`), not the deprecated
+`GoogleSignInClient`. The iOS actual reports `isAvailable = false` and throws
+if called, and `AuthScreen` leaves the button out entirely when it is false.
+
+That is deliberate and not an oversight: under App Store review guideline 4.8,
+an iOS app that offers Google sign-in must also offer Sign in with Apple, so
+the two have to ship together. Adding Google to iOS without Apple would fail
+review.
+
+Three pieces of configuration sit outside the code, and none of them fail
+loudly:
+
+1. Both signing certificate SHA-1 fingerprints, app signing key and upload key,
+   are registered in Firebase. Without them the sheet opens and then fails with
+   a generic developer error.
+2. The Google provider is enabled in Firebase Authentication.
+3. `androidApp/google-services.json` is the copy downloaded after both of the
+   above, because the google-services plugin generates
+   `default_web_client_id` from its `client_type: 3` entry.
+
+The ID passed to `GetSignInWithGoogleOption` is the **web** client ID. The
+Android one yields a token that looks fine locally and is rejected at sign-in.
+It is read with `resources.getIdentifier` rather than through `R`, because the
+google-services plugin writes that string into the application module and
+`shared` is a library module, whose `R` only carries its own resources.
+
+Where an email/password account already exists for the same address, the
+project links the two rather than rejecting the second, verified on real
+accounts on 2026-11-03.
+
+### Three other behaviours worth knowing
 
 - **Email-verified status is cached client-side.** There is no push when the
   user clicks the link in their inbox, so anything displaying verification

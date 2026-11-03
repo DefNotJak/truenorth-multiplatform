@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -25,9 +27,11 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -44,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -65,6 +70,12 @@ import dev.gitlive.firebase.auth.FirebaseAuthInvalidUserException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.FirebaseAuthWeakPasswordException
 import com.truenorth.citizenshiptest.data.AuthRepository
+import com.truenorth.citizenshiptest.data.GoogleSignInCancelled
+import com.truenorth.citizenshiptest.data.NoGoogleAccountOnDevice
+import com.truenorth.citizenshiptest.data.rememberGoogleSignIn
+import org.jetbrains.compose.resources.painterResource
+import truenorth.shared.generated.resources.Res
+import truenorth.shared.generated.resources.ic_google_logo
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -82,6 +93,7 @@ fun AuthScreen(authRepository: AuthRepository) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val parkFocusHere = remember { FocusRequester() }
+    val googleSignIn = rememberGoogleSignIn()
 
     // Both calls, deliberately, everywhere the keyboard should go away.
     // clearFocus() ends the text input session, which on some devices and
@@ -142,6 +154,29 @@ fun AuthScreen(authRepository: AuthRepository) {
                 } else {
                     authRepository.signIn(email.trim(), password)
                 }
+            } catch (e: Exception) {
+                errorMessage = friendlyAuthErrorMessage(e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // One button for both sign-in and sign-up. Google already knows whether
+    // this person has an account with us, so asking them to pick first, the way
+    // the email form does, would be asking a question we can answer ourselves.
+    fun continueWithGoogle() {
+        errorMessage = null
+        dismissKeyboard()
+        isLoading = true
+        scope.launch {
+            try {
+                authRepository.signInWithGoogle(googleSignIn.requestIdToken())
+            } catch (e: GoogleSignInCancelled) {
+                // Backing out of the sheet is a decision, not a failure.
+            } catch (e: NoGoogleAccountOnDevice) {
+                errorMessage = "There's no Google account on this device. " +
+                    "Add one in Android Settings, or sign in with your email and password."
             } catch (e: Exception) {
                 errorMessage = friendlyAuthErrorMessage(e)
             } finally {
@@ -217,6 +252,50 @@ fun AuthScreen(authRepository: AuthRepository) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
+
+                // Above the form, not below it, because for most people it is
+                // the shorter path and they should see it before they start
+                // typing. It sits inside the keyboard check with the header for
+                // the same reason the header does: once someone is typing in
+                // the email field they will not reach for this, and on a 640dp
+                // screen the space it costs is the space the form needs.
+                //
+                // Absent entirely on iOS, where isAvailable is false. See
+                // GoogleSignIn in commonMain for why.
+                if (googleSignIn.isAvailable) {
+                    OutlinedButton(
+                        onClick = { continueWithGoogle() },
+                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_google_logo),
+                            contentDescription = null,
+                            // Unspecified, or Material recolours the
+                            // four-colour mark to the theme's content colour,
+                            // which Google's brand guidelines do not allow.
+                            tint = Color.Unspecified
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Continue with Google")
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "or",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+                }
             }
 
             OutlinedTextField(

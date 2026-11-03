@@ -179,6 +179,15 @@ number. If it works, item 3 is finished.
 
 ## Unscheduled
 
+- **Sign in with Apple, paired with Google on iOS.** `GoogleSignIn.ios.kt`
+  reports `isAvailable = false`, so iOS shows email and password only. Turning
+  Google on there requires Sign in with Apple alongside it under App Store
+  review guideline 4.8, so the two are one piece of work. The shared screen
+  already branches on the flag; what is missing is the Apple provider in
+  Firebase, the Apple capability in Xcode, and an iOS actual for each.
+- **Passwordless email link sign-in.** Smaller than Google was, and the right
+  next step for an audience studying on a phone who would rather not keep a
+  password. Deferred until Google has run in production for a while.
 - **CI.** A GitHub Actions workflow running `compileCommonMainKotlinMetadata`,
   `compileKotlinIosSimulatorArm64` and `check` on every push. Free, because the
   repository is public. The argument for it is specific: the first iOS compile

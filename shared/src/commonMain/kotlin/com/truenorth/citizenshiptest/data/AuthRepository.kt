@@ -3,6 +3,7 @@ package com.truenorth.citizenshiptest.data
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +20,19 @@ class AuthRepository {
 
     suspend fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password)
+    }
+
+    /**
+     * Trades a Google ID token from [GoogleSignIn.requestIdToken] for a Firebase
+     * session, creating the account on first use.
+     *
+     * Where an email/password account already exists for the same address, this
+     * project is configured to link the two rather than reject the second one,
+     * so someone who signed up with a password can later tap the Google button
+     * and land in the same account.
+     */
+    suspend fun signInWithGoogle(idToken: String) {
+        auth.signInWithCredential(GoogleAuthProvider.credential(idToken, null))
     }
 
     suspend fun sendPasswordResetEmail(email: String) {

@@ -12,7 +12,28 @@
           "package_name": "com.truenorth.citizenshiptest"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "907834401129-0peguhcsun21rfhsrm9qn7ep0dil1dhr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.truenorth.citizenshiptest",
+            "certificate_hash": "8b6502f227f567dabb7472c625df8f147f4e8eeb"
+          }
+        },
+        {
+          "client_id": "907834401129-vitvmdta3lra1tqh0bosbo4b5jfqepr8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.truenorth.citizenshiptest",
+            "certificate_hash": "35b027fe6e386831d5b7a3567b646b68c72afe75"
+          }
+        },
+        {
+          "client_id": "907834401129-3mgjgt4k068ratdscp1ths6a78m8l980.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBlnNF0diUWjIaOEhcVZvN69neCefym5Wc"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "907834401129-3mgjgt4k068ratdscp1ths6a78m8l980.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "907834401129-emnkvhusgmili4bd3vmv610rb99oa2ml.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.truenorth.citizenshiptest"
+              }
+            }
+          ]
         }
       }
     }

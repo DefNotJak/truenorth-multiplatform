@@ -54,6 +54,12 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.play.review.ktx)
             implementation(libs.billing.ktx)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            // 1.2.x here, not the 1.1.1 the native Android repo is pinned to:
+            // 1.2.x carries Kotlin 2.4 metadata, which this project's compiler
+            // reads and that one's does not.
+            implementation(libs.googleid)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

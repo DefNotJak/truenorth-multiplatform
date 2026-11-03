@@ -328,3 +328,31 @@ for it. A session flag set by a successful restore is what prevents this.
 Uploading attempts is deliberately *not* gated the same way. It only ever adds
 documents, so running it before a restore is harmless, and gating it would
 block the one path that carries an existing user's local-only history up.
+
+### Sign in with Google is Android-only, on purpose
+*2026-11-03*
+
+`GoogleSignIn` has an Android actual built on Credential Manager and an iOS
+actual that reports `isAvailable = false`. `AuthScreen` omits the button
+entirely when that flag is false, rather than showing one that throws.
+
+The constraint is App Store review guideline 4.8: an iOS app offering a
+third-party sign-in service must also offer Sign in with Apple. Shipping Google
+to iOS alone would fail review, so the two belong in one piece of work. Until
+then a stub that fails on tap would be worse than no button, because the user
+discovers the gap after committing to it.
+
+Credential Manager rather than `GoogleSignInClient`, which Google deprecated.
+Beyond that, the same request can later carry passkey and saved-password
+options, so those become a credential option rather than a second integration.
+
+The web client ID is read with `resources.getIdentifier`, not through `R`. The
+google-services plugin writes `default_web_client_id` into the application
+module; `shared` is a library module and its `R` holds only its own resources.
+The resource is present in the merged APK at runtime, which is all the lookup
+needs, and a missing one throws a message naming the console step instead of a
+bare resource ID.
+
+`googleid` is pinned to 1.2.1 here and 1.1.1 in the native Android repo. 1.2.x
+ships Kotlin 2.4 metadata; this project compiles with Kotlin 2.4.10 and reads
+it, the other is on 2.2 and does not.
