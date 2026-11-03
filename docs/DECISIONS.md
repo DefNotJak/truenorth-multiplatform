@@ -356,3 +356,23 @@ bare resource ID.
 `googleid` is pinned to 1.2.1 here and 1.1.1 in the native Android repo. 1.2.x
 ships Kotlin 2.4 metadata; this project compiles with Kotlin 2.4.10 and reads
 it, the other is on 2.2 and does not.
+
+### firebase-ios-sdk pinned to 13.1.1 for the eMudhra CA revocation
+*2026-11-03*
+
+On 2026-10-17 Google disclosed that private keys for several intermediate CA
+certificates issued by eMudhra were compromised. The affected Firebase SDKs
+compile the TLS root certificate bundle into the application binary, so neither
+an OS update nor a server-side change fixes an already-installed build. A
+network attacker holding those keys could forge a Firestore certificate that an
+unpatched client would still trust, and read or tamper with everything in
+transit.
+
+firebase-ios-sdk 13.1.1 removes the affected roots from the embedded trust
+store. The Xcode SPM reference now requires it as a minimum rather than 13.0.1.
+
+Only the iOS app was exposed. Google's notice lists the Apple, Flutter, C++ and
+Unity SDKs plus community-supported wrappers as affected, and explicitly
+excludes the Firebase Android and Web SDKs and the backend service. The native
+Android app and this project's androidApp both go through the Android SDK, so
+neither needed a rebuild.
