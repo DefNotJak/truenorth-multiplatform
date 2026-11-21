@@ -10,5 +10,19 @@
 	     and stops parking builds in "Missing Compliance". -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Google's sign-in flow hands control to Safari and comes back through
+	     this scheme. It is the REVERSED_CLIENT_ID from GoogleService-Info.plist
+	     verbatim; if the two ever disagree the sheet opens, the user signs in,
+	     and nothing comes back. Not a secret: it is derived from the public
+	     OAuth client ID and ships inside every copy of the app. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.907834401129-emnkvhusgmili4bd3vmv610rb99oa2ml</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

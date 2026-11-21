@@ -179,11 +179,6 @@ number. If it works, item 3 is finished.
 
 ## Unscheduled
 
-- **Google sign-in on iOS.** Sign in with Apple shipped on 2026-11-21, so
-  guideline 4.8 is already satisfied and Google can be added on its own. It
-  needs the GoogleSignIn SDK behind a Swift bridge, because GitLive exposes no
-  `signInWithProvider`. Worth doing: Android users who signed up with Google
-  since 2026-11-05 have passwordless accounts they cannot reach on an iPhone.
 - **Passwordless email link sign-in.** Smaller than Google was, and the right
   next step for an audience studying on a phone who would rather not keep a
   password. Deferred until Google has run in production for a while.

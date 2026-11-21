@@ -454,11 +454,36 @@ It needs the **Sign In with Apple** capability on the Xcode target, which
 creates `iosApp.entitlements`, and the matching capability on the App ID in
 the Apple Developer portal. Neither of those is a code change in this repo.
 
-Google sign-in is **not** available on iOS yet. GitLive exposes
-`signInWithCredential` but no `signInWithProvider`, so Firebase's own web OAuth
-flow is unreachable, and obtaining a Google ID token on iOS needs the
-GoogleSignIn SDK behind a Swift bridge. Until that exists, an Android user who
-signed up with Google cannot reach that same account on iOS.
+### Google sign-in on iOS
+
+Google ships a Swift-only API, so unlike Apple this one cannot be reached from
+Kotlin/Native through cinterop. GitLive exposes `signInWithCredential` but no
+`signInWithProvider`, so Firebase's own web OAuth flow is not an option
+either, and hand-rolling OAuth would mean adding an HTTP client this project
+does not otherwise need.
+
+So the native call stays in Swift and only the ID token crosses back.
+`GoogleSignInHandler` is a Kotlin interface implemented by `GoogleSignInBridge`
+in `iOSApp.swift` and registered on `IosGoogleSignIn.handler` during
+`iOSApp.init`, before any Compose code runs. `GoogleSignIn.isAvailable` reads
+that field, so a build where registration failed hides the button instead of
+showing one that throws.
+
+The interface takes three single-argument callbacks rather than one callback
+with several parameters. A Kotlin lambda taking a nullable String plus a
+Boolean reaches Swift with boxed types such as `KotlinBoolean`, and this is a
+boundary no single compiler checks end to end.
+
+Three pieces of configuration outside the Kotlin:
+
+- `CFBundleURLTypes` in `iosApp/Info.plist` carries the `REVERSED_CLIENT_ID`
+  from `GoogleService-Info.plist` verbatim. Google leaves the app for Safari
+  and returns through that scheme.
+- `ContentView` calls `GIDSignIn.sharedInstance.handle(url)` from `onOpenURL`.
+  Without it the user signs in, returns, and nothing happens.
+- The client ID is read from `FirebaseApp.app()?.options.clientID`, not
+  repeated as `GIDClientID` in Info.plist, so it cannot drift from the config
+  file after a re-download.
 
 ### Three other behaviours worth knowing
 

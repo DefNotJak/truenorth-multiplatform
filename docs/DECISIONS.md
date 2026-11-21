@@ -454,3 +454,32 @@ ID token on iOS requires the GoogleSignIn SDK behind a Swift bridge. That is a
 separate piece of work, and it matters because Android users who signed up
 with Google after 2026-11-05 have passwordless accounts they cannot currently
 reach from an iPhone.
+
+### Google sign-in on iOS goes through a Swift bridge, Apple does not
+*2026-11-21*
+
+The two look symmetrical from the shared screen and are not symmetrical
+underneath. `AuthenticationServices` is Objective-C, so Apple sign-in is
+written entirely in `iosMain`. Google's iOS SDK has a Swift-only surface that
+cinterop cannot see, so that one keeps its native call in Swift and sends back
+only the ID token.
+
+Two alternatives were rejected. Firebase's own web OAuth flow is unreachable
+because GitLive exposes `signInWithCredential` but no `signInWithProvider`,
+confirmed by reading the 2.6.0 metadata. Hand-rolling OAuth with PKCE over
+`ASWebAuthenticationSession` would stay in Kotlin, but it means an HTTP client
+this project does not otherwise carry, plus roughly two hundred lines of
+security-sensitive code in exchange for avoiding forty lines of Swift against
+a documented API.
+
+The Swift lives in `iOSApp.swift` and `ContentView.swift`, both already in the
+Xcode target, rather than a new file. A new Swift file has to be registered in
+`project.pbxproj`, which means a step in Xcode; editing files that are already
+there can be done from any machine. The only Xcode action this feature needs
+is adding the GoogleSignIn-iOS package.
+
+`GoogleSignInHandler` passes three single-argument callbacks instead of one
+multi-argument callback. Kotlin lambdas carrying a nullable String next to a
+Boolean arrive in Swift with boxed types like `KotlinBoolean`, and nothing
+checks this boundary end to end, so the simplest possible signatures are worth
+more than the tidier shape.
