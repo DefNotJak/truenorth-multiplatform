@@ -120,6 +120,21 @@ fun AppNavHost(
         scope.launch {
             billingRepository.connect()
             handlePurchases(billingRepository.queryExistingPurchases())
+
+            // Re-query prices, because the cold-start fetch above is otherwise
+            // the only one for the life of the process. A first fetch that
+            // fails on a dead network, or returns the wrong storefront's
+            // prices, would then be displayed until the app is killed. The
+            // storefront can also genuinely change under us when someone
+            // switches their App Store region, and that happens while we are
+            // backgrounded.
+            //
+            // Overwrite only on a non-empty result: queryProductPrices()
+            // returns an empty map on failure, and replacing good prices with
+            // nothing would turn a transient network blip into a paywall with
+            // no prices on it.
+            val refreshed = billingRepository.queryProductPrices()
+            if (refreshed.isNotEmpty()) productPrices = refreshed
         }
         // Catches anything a process kill or a dead network left behind. A test
         // finished in aeroplane mode uploads here rather than being lost.

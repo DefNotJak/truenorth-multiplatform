@@ -199,9 +199,6 @@ number. If it works, item 3 is finished.
   ignored.
 - **Play listing says "580+", iOS says 589.** Accurate but inconsistent. Worth
   aligning next time the Play listing is edited.
-- **Refresh in-app purchase prices on resume.** Prices are fetched once in
-  `LaunchedEffect(Unit)` and never again, so a failed or stale first fetch
-  persists for the whole session.
 - **Em dashes in shipped copy.** Hundreds across question explanations and the
   Info screen. The owner's no-em-dash rule was stated for written output to him;
   whether it extends to app copy has never been decided. Ask before touching

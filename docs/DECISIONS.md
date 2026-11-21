@@ -329,6 +329,27 @@ Uploading attempts is deliberately *not* gated the same way. It only ever adds
 documents, so running it before a restore is harmless, and gating it would
 block the one path that carries an existing user's local-only history up.
 
+### IAP prices are re-queried on every resume
+*2026-11-21*
+
+The cold-start `LaunchedEffect(Unit)` was the only price fetch in the process.
+Anything wrong with it stayed on screen until the app was killed: a fetch that
+failed on a dead network, or one that resolved against the wrong storefront.
+The storefront can also change legitimately, when someone switches their App
+Store region, and that happens while the app is backgrounded.
+
+The resume path already reconnected and reconciled purchases, so the price
+query joins it there.
+
+The non-empty guard is the load-bearing part. `queryProductPrices()` returns an
+empty map on failure, so an unguarded assignment would let one bad resume
+replace correct prices with a paywall showing none. Overwriting only on a
+non-empty result makes a failed refresh a no-op instead.
+
+This is not confirmed to be the cause of the USD/CAD paywall mismatch, which
+remains open. It is worth doing either way, and it means a transient bad fetch
+self-corrects rather than persisting.
+
 ### Sign in with Google is Android-only, on purpose
 *2026-11-03*
 
