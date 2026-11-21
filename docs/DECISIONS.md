@@ -397,3 +397,29 @@ Unity SDKs plus community-supported wrappers as affected, and explicitly
 excludes the Firebase Android and Web SDKs and the backend service. The native
 Android app and this project's androidApp both go through the Android SDK, so
 neither needed a rebuild.
+
+### The iOS product request waits for the storefront
+*2026-11-21*
+
+`queryProductPrices()` now polls `SKPaymentQueue.storefront` until it is
+non-null, up to three seconds, before issuing the `SKProductsRequest`.
+
+`storefront` is null for a short window after the payment queue comes up, and a
+products request issued inside that window returns prices for a default
+storefront instead of the user's. That matches the USD-on-a-Canadian-account
+bug exactly: the paywall queries at cold start and showed $5.99/$9.99, which
+are base-storefront values, while the payment sheet seconds later charged
+$7.99, the correct Canadian price. Same `SKProduct` object, two different
+answers, because only one of them was resolved after the storefront was known.
+
+Ruled out first, on a real device: a stale cached product response (clean
+delete and reinstall reproduced it), our own display code (no hardcoded prices
+or fallbacks anywhere in `buildPlans`), and a signed-in sandbox tester with a
+US region (none is signed in at all, which is itself consistent with a default
+storefront being used).
+
+Not yet confirmed as the fix. Every observation so far is from TestFlight,
+which uses the StoreKit sandbox, so the bug may not exist in production. The
+timeout returns null rather than blocking, because a paywall with uncertain
+prices beats one that never loads, and the resume refresh gets another attempt
+a moment later.

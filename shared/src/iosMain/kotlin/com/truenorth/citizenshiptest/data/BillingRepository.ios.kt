@@ -6,6 +6,7 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSError
 import platform.Foundation.NSNumberFormatter
@@ -21,9 +22,16 @@ import platform.StoreKit.SKProduct
 import platform.StoreKit.SKProductsRequest
 import platform.StoreKit.SKProductsRequestDelegateProtocol
 import platform.StoreKit.SKProductsResponse
+import platform.StoreKit.SKStorefront
 import platform.StoreKit.SKRequest
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
+
+// Three seconds total. Long enough for StoreKit to come up on a cold start,
+// short enough that a device genuinely unable to reach the store still gets a
+// paywall rather than a spinner.
+private const val STOREFRONT_POLL_ATTEMPTS = 30
+private const val STOREFRONT_POLL_INTERVAL_MILLIS = 100L
 
 /**
  * StoreKit 2 (Product/Transaction, async/await) is Swift-only - it has no
@@ -91,7 +99,32 @@ actual class BillingRepository {
         // unfinished transactions to it right after this call.
     }
 
+    /**
+     * Blocks the product request until StoreKit knows which storefront the
+     * device is on.
+     *
+     * [SKPaymentQueue.storefront] is null for a short window after the queue
+     * comes up, and a products request issued inside that window comes back
+     * priced against a default storefront rather than the user's. That is the
+     * shape of the USD-prices-on-a-Canadian-account bug: the paywall, which
+     * queries at cold start, showed base-storefront prices, while the payment
+     * sheet, which happens seconds later once the user taps, charged the
+     * correct Canadian ones.
+     *
+     * Returns null on timeout rather than blocking forever. A paywall with
+     * possibly-wrong prices beats a paywall that never loads, and the resume
+     * refresh in AppNavHost gets another attempt shortly afterwards.
+     */
+    private suspend fun awaitStorefront(): SKStorefront? {
+        repeat(STOREFRONT_POLL_ATTEMPTS) {
+            SKPaymentQueue.defaultQueue().storefront?.let { return it }
+            delay(STOREFRONT_POLL_INTERVAL_MILLIS)
+        }
+        return SKPaymentQueue.defaultQueue().storefront
+    }
+
     actual suspend fun queryProductPrices(): Map<String, ProductPrice> {
+        awaitStorefront()
         val products = suspendCancellableCoroutine<List<SKProduct>> { continuation ->
             val request = SKProductsRequest(productIdentifiers = BillingProducts.DURATIONS_MILLIS.keys)
             val delegate = object : NSObject(), SKProductsRequestDelegateProtocol {
