@@ -423,3 +423,34 @@ which uses the StoreKit sandbox, so the bug may not exist in production. The
 timeout returns null rather than blocking, because a paywall with uncertain
 prices beats one that never loads, and the resume refresh gets another attempt
 a moment later.
+
+### Sign in with Apple is pure Kotlin/Native, no Swift bridge
+*2026-11-21*
+
+`AuthenticationServices` is an Objective-C framework, so `ASAuthorizationAppleIDProvider`,
+`ASAuthorizationController` and both of its delegate protocols are reachable
+from `iosMain` through cinterop. SHA-256 comes from `platform.CoreCrypto`. No
+Swift file, no extra Swift Package, nothing added to the Xcode project but the
+capability.
+
+Three things in that implementation are load-bearing and should not be
+simplified:
+
+- **The delegate is a field, not a local.** `ASAuthorizationController` holds
+  its delegate and presentation provider weakly. A local is collected while
+  the sheet is still open and no callback ever arrives.
+- **The raw nonce travels with the token.** Apple receives the SHA-256 and
+  embeds it in the identity token; Firebase receives the raw value and checks
+  the two agree. `AppleCredential` keeps them together so they cannot be
+  swapped, which otherwise fails with an unhelpful error.
+- **The nonce comes from two `NSUUID`s, not `kotlin.random.Random`.** Random is
+  not a cryptographic source, and the whole point of the nonce is that it
+  cannot be guessed.
+
+Google on iOS is deliberately not part of this. GitLive's wrapper exposes
+`signInWithCredential` but no `signInWithProvider`, confirmed by reading the
+2.6.0 metadata, so Firebase's own web OAuth flow is not reachable and a Google
+ID token on iOS requires the GoogleSignIn SDK behind a Swift bridge. That is a
+separate piece of work, and it matters because Android users who signed up
+with Google after 2026-11-05 have passwordless accounts they cannot currently
+reach from an iPhone.

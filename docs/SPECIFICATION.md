@@ -425,6 +425,41 @@ Where an email/password account already exists for the same address, the
 project links the two rather than rejecting the second, verified on real
 accounts on 2026-11-03.
 
+### Sign in with Apple
+
+`AppleSignIn` is an `expect class` shaped like `GoogleSignIn` with the
+platforms reversed: the iOS actual drives `ASAuthorizationController` from
+`AuthenticationServices`, and the Android actual reports `isAvailable = false`.
+`AuthScreen` shows each button only where its flag is true, so iOS gets Apple
+and email, Android gets Google and email, and the "or" divider appears
+wherever either exists.
+
+No Swift and no extra package. `AuthenticationServices` is Objective-C, so
+Kotlin/Native reaches it through cinterop directly.
+
+The nonce is the part to be careful with. A random value is generated per
+request, its SHA-256 goes to Apple on the request, and the **raw** value goes
+to Firebase alongside the identity token. Firebase checks that the hash
+embedded in the token matches the raw value it was given, which is what makes
+a stolen token useless to replay. `AppleCredential` carries both halves
+together so they cannot be separated by accident; passing the hash where the
+raw value belongs fails with an unhelpful error.
+
+The delegate is held in a field, not a local. `ASAuthorizationController` keeps
+only weak references to its delegate and presentation provider, so a local
+would be collected while the sheet was still open and no callback would ever
+arrive.
+
+It needs the **Sign In with Apple** capability on the Xcode target, which
+creates `iosApp.entitlements`, and the matching capability on the App ID in
+the Apple Developer portal. Neither of those is a code change in this repo.
+
+Google sign-in is **not** available on iOS yet. GitLive exposes
+`signInWithCredential` but no `signInWithProvider`, so Firebase's own web OAuth
+flow is unreachable, and obtaining a Google ID token on iOS needs the
+GoogleSignIn SDK behind a Swift bridge. Until that exists, an Android user who
+signed up with Google cannot reach that same account on iOS.
+
 ### Three other behaviours worth knowing
 
 - **Email-verified status is cached client-side.** There is no push when the

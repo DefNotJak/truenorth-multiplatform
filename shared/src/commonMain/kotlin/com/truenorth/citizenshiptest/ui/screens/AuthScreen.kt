@@ -24,7 +24,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -70,8 +72,10 @@ import dev.gitlive.firebase.auth.FirebaseAuthInvalidUserException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.FirebaseAuthWeakPasswordException
 import com.truenorth.citizenshiptest.data.AuthRepository
+import com.truenorth.citizenshiptest.data.AppleSignInCancelled
 import com.truenorth.citizenshiptest.data.GoogleSignInCancelled
 import com.truenorth.citizenshiptest.data.NoGoogleAccountOnDevice
+import com.truenorth.citizenshiptest.data.rememberAppleSignIn
 import com.truenorth.citizenshiptest.data.rememberGoogleSignIn
 import org.jetbrains.compose.resources.painterResource
 import truenorth.shared.generated.resources.Res
@@ -94,6 +98,7 @@ fun AuthScreen(authRepository: AuthRepository) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val parkFocusHere = remember { FocusRequester() }
     val googleSignIn = rememberGoogleSignIn()
+    val appleSignIn = rememberAppleSignIn()
 
     // Both calls, deliberately, everywhere the keyboard should go away.
     // clearFocus() ends the text input session, which on some devices and
@@ -154,6 +159,23 @@ fun AuthScreen(authRepository: AuthRepository) {
                 } else {
                     authRepository.signIn(email.trim(), password)
                 }
+            } catch (e: Exception) {
+                errorMessage = friendlyAuthErrorMessage(e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun continueWithApple() {
+        errorMessage = null
+        dismissKeyboard()
+        isLoading = true
+        scope.launch {
+            try {
+                authRepository.signInWithApple(appleSignIn.requestCredential())
+            } catch (e: AppleSignInCancelled) {
+                // Backing out of the sheet is a decision, not a failure.
             } catch (e: Exception) {
                 errorMessage = friendlyAuthErrorMessage(e)
             } finally {
@@ -262,6 +284,28 @@ fun AuthScreen(authRepository: AuthRepository) {
                 //
                 // Absent entirely on iOS, where isAvailable is false. See
                 // GoogleSignIn in commonMain for why.
+                // Apple's guidelines want black on light and white on dark,
+                // which is what onSurface/surface already give us, and they
+                // follow the app's own theme setting rather than the system's.
+                if (appleSignIn.isAvailable) {
+                    Button(
+                        onClick = { continueWithApple() },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onSurface,
+                            contentColor = MaterialTheme.colorScheme.surface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // U+F8FF renders as the Apple logo in the system font.
+                        // Written as an escape so the source file stays ASCII
+                        // and no editor or tool can mangle it in transit.
+                        Text("  Sign in with Apple")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 if (googleSignIn.isAvailable) {
                     OutlinedButton(
                         onClick = { continueWithGoogle() },
@@ -279,7 +323,12 @@ fun AuthScreen(authRepository: AuthRepository) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("Continue with Google")
                     }
+                }
 
+                // Outside both checks: the divider separates the social
+                // buttons from the email form, so it belongs to whichever of
+                // them exists on this platform, not to Google specifically.
+                if (appleSignIn.isAvailable || googleSignIn.isAvailable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier

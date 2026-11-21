@@ -4,6 +4,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
+import dev.gitlive.firebase.auth.OAuthProvider
 import dev.gitlive.firebase.auth.auth
 import kotlinx.coroutines.flow.Flow
 
@@ -33,6 +34,25 @@ class AuthRepository {
      */
     suspend fun signInWithGoogle(idToken: String) {
         auth.signInWithCredential(GoogleAuthProvider.credential(idToken, null))
+    }
+
+    /**
+     * Trades an Apple identity token for a Firebase session, creating the
+     * account on first use.
+     *
+     * The raw nonce goes with it: Apple embedded its SHA-256 in the token, and
+     * Firebase rejects the sign-in unless the two agree. Passing the hash here
+     * instead of the raw value fails, which is a confusing error to debug, so
+     * [AppleCredential] carries both halves together on purpose.
+     */
+    suspend fun signInWithApple(credential: AppleCredential) {
+        auth.signInWithCredential(
+            OAuthProvider.credential(
+                providerId = "apple.com",
+                idToken = credential.idToken,
+                rawNonce = credential.rawNonce
+            )
+        )
     }
 
     suspend fun sendPasswordResetEmail(email: String) {
