@@ -24,7 +24,7 @@ actual class GoogleSignIn(private val context: Context) {
      * request later carries passkey and saved-password options without a
      * second integration.
      */
-    actual suspend fun requestIdToken(): String {
+    actual suspend fun requestCredential(): GoogleCredential {
         val activity = context.findActivity()
             ?: throw IllegalStateException("Google sign-in needs an Activity context")
 
@@ -47,7 +47,12 @@ actual class GoogleSignIn(private val context: Context) {
         ) {
             throw IllegalStateException("Unexpected credential type: ${credential.type}")
         }
-        return GoogleIdTokenCredential.createFrom(credential.data).idToken
+        // Credential Manager has no access token to give. Android does not need
+        // one: GitLive asks only that at least one of the two is present.
+        return GoogleCredential(
+            idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken,
+            accessToken = null
+        )
     }
 }
 

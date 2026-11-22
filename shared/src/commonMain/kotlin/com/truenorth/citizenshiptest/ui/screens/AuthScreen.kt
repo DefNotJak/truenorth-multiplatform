@@ -193,7 +193,7 @@ fun AuthScreen(authRepository: AuthRepository) {
         isLoading = true
         scope.launch {
             try {
-                authRepository.signInWithGoogle(googleSignIn.requestIdToken())
+                authRepository.signInWithGoogle(googleSignIn.requestCredential())
             } catch (e: GoogleSignInCancelled) {
                 // Backing out of the sheet is a decision, not a failure.
             } catch (e: NoGoogleAccountOnDevice) {

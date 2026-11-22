@@ -32,8 +32,10 @@ class AuthRepository {
      * so someone who signed up with a password can later tap the Google button
      * and land in the same account.
      */
-    suspend fun signInWithGoogle(idToken: String) {
-        auth.signInWithCredential(GoogleAuthProvider.credential(idToken, null))
+    suspend fun signInWithGoogle(credential: GoogleCredential) {
+        auth.signInWithCredential(
+            GoogleAuthProvider.credential(credential.idToken, credential.accessToken)
+        )
     }
 
     /**

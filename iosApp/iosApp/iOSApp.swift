@@ -6,15 +6,15 @@ import Shared
 /// Bridges Google's iOS sign-in SDK to the Kotlin `GoogleSignInHandler`.
 ///
 /// It lives in Swift because `GIDSignIn` has a Swift-only surface that
-/// Kotlin/Native cannot reach through cinterop. Only the resulting ID token
-/// crosses the boundary; everything Google-specific stays on this side.
+/// Kotlin/Native cannot reach through cinterop. Only the resulting tokens
+/// cross the boundary; everything Google-specific stays on this side.
 ///
 /// Sign in with Apple needs no equivalent, because `AuthenticationServices`
 /// is Objective-C and `AppleSignIn.ios.kt` calls it directly.
 class GoogleSignInBridge: NSObject, GoogleSignInHandler {
 
     func signIn(
-        onToken: @escaping (String) -> Void,
+        onToken: @escaping (String, String) -> Void,
         onCancelled: @escaping () -> Void,
         onError: @escaping (String) -> Void
     ) {
@@ -41,11 +41,19 @@ class GoogleSignInBridge: NSObject, GoogleSignInHandler {
                 }
                 return
             }
-            guard let idToken = result?.user.idToken?.tokenString else {
+            guard let user = result?.user else {
+                onError("Google returned no account")
+                return
+            }
+            guard let idToken = user.idToken?.tokenString else {
                 onError("Google returned no identity token")
                 return
             }
-            onToken(idToken)
+            // The access token goes across too. Firebase does not need it,
+            // but GitLive's iOS GoogleAuthProvider rejects a nil one before
+            // Firebase is reached. user.accessToken is non-optional, so there
+            // is nothing to guard here.
+            onToken(idToken, user.accessToken.tokenString)
         }
     }
 

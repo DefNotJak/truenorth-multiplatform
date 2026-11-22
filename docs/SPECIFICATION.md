@@ -462,14 +462,18 @@ Kotlin/Native through cinterop. GitLive exposes `signInWithCredential` but no
 either, and hand-rolling OAuth would mean adding an HTTP client this project
 does not otherwise need.
 
-So the native call stays in Swift and only the ID token crosses back.
+So the native call stays in Swift and only the tokens cross back: the
+identity token Firebase verifies, and the access token alongside it. Firebase
+has no use for the second one, but GitLive's iOS `GoogleAuthProvider` calls
+`requireNotNull` on it where its Android counterpart accepts either token
+alone, so omitting it fails the sign-in before Firebase is reached.
 `GoogleSignInHandler` is a Kotlin interface implemented by `GoogleSignInBridge`
 in `iOSApp.swift` and registered on `IosGoogleSignIn.handler` during
 `iOSApp.init`, before any Compose code runs. `GoogleSignIn.isAvailable` reads
 that field, so a build where registration failed hides the button instead of
 showing one that throws.
 
-The interface takes three single-argument callbacks rather than one callback
+The interface takes one callback per outcome rather than one callback
 with several parameters. A Kotlin lambda taking a nullable String plus a
 Boolean reaches Swift with boxed types such as `KotlinBoolean`, and this is a
 boundary no single compiler checks end to end.

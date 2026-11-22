@@ -15,14 +15,21 @@ import kotlin.coroutines.resumeWithException
  * Apple. Rather than hand-roll an OAuth flow, the native call stays in Swift
  * and only the result crosses back.
  *
- * Three separate single-argument callbacks rather than one callback with
- * several parameters: a Kotlin lambda taking a nullable String plus a Boolean
- * arrives in Swift with boxed types like `KotlinBoolean`, which is easy to get
- * subtly wrong on a boundary neither compiler checks end to end.
+ * Both tokens come back, not just the identity one. GitLive's iOS
+ * `GoogleAuthProvider.credential` calls `requireNotNull` on the access token
+ * even though Firebase does not need it, so omitting it fails the sign-in
+ * with an IllegalArgumentException that never reaches Firebase. See
+ * [GoogleCredential].
+ *
+ * Separate callbacks per outcome rather than one callback with a result and
+ * an optional error: a Kotlin lambda taking a nullable String next to a
+ * Boolean arrives in Swift with boxed types like `KotlinBoolean`, which is
+ * easy to get subtly wrong on a boundary neither compiler checks end to end.
+ * Two plain Strings cross cleanly, so [onToken] carries both.
  */
 interface GoogleSignInHandler {
     fun signIn(
-        onToken: (String) -> Unit,
+        onToken: (String, String) -> Unit,
         onCancelled: () -> Unit,
         onError: (String) -> Unit
     )
@@ -42,14 +49,16 @@ actual class GoogleSignIn {
     actual val isAvailable: Boolean
         get() = IosGoogleSignIn.handler != null
 
-    actual suspend fun requestIdToken(): String {
+    actual suspend fun requestCredential(): GoogleCredential {
         val handler = IosGoogleSignIn.handler
             ?: throw UnsupportedOperationException("Google sign-in is not wired up on this build")
 
         return suspendCancellableCoroutine { continuation ->
             handler.signIn(
-                onToken = { token ->
-                    if (continuation.isActive) continuation.resume(token)
+                onToken = { idToken, accessToken ->
+                    if (continuation.isActive) {
+                        continuation.resume(GoogleCredential(idToken, accessToken))
+                    }
                 },
                 onCancelled = {
                     if (continuation.isActive) continuation.resumeWithException(GoogleSignInCancelled())

@@ -502,3 +502,30 @@ The first version of this file arrived from a Mac session named " "
 (a single space), along with the Xcode target itself, because a stray
 keystroke landed in a name field. It archived successfully, which is why it
 went unnoticed. The names were restored when the change was replayed here.
+
+### Google sign-in sends the access token to Firebase even though Firebase ignores it
+*2026-11-21*
+
+Build 5 reached Google's account picker, came back from Safari, and then
+failed with the screen's generic error. The cause was not in our code or in
+Firebase. GitLive's `GoogleAuthProvider.credential(idToken, accessToken)` is
+implemented differently on each platform:
+
+- Android: `"Both parameters are optional but at least one must be present."`
+- iOS: `requireNotNull` on both, with `"accessToken must not be null"`
+
+Both strings were read out of the shipped artifacts rather than inferred.
+`AuthRepository` passed null for the access token, which Android accepts and
+iOS rejects with an `IllegalArgumentException` that never reaches Firebase.
+`friendlyAuthErrorMessage` maps four Firebase exception types and falls back
+to "Something went wrong", so the real cause was invisible on the device.
+
+The fix carries both tokens. `GoogleCredential` holds them, the Swift bridge
+returns `user.accessToken.tokenString` beside the identity token, and Android
+keeps passing null because Credential Manager has no access token to give.
+Nullable, not required, because the platform that insists on it is also the
+only one that has it.
+
+Working around it in `iosMain` with a direct `FIRGoogleAuthProvider` call was
+rejected: GitLive's cinterop bindings are internal, so it would mean a
+cinterop definition of our own for one method.
