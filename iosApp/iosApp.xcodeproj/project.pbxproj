@@ -10,10 +10,12 @@
 		E28A6DE5308410A90088EC0A /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = E28A6DE4308410A90088EC0A /* FirebaseAuth */; };
 		E28A6DE7308410A90088EC0A /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = E28A6DE6308410A90088EC0A /* FirebaseCore */; };
 		E28A6DE9308410A90088EC0A /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E28A6DE8308410A90088EC0A /* FirebaseFirestore */; };
+		E2A8825630B2231C00ACA6F7 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = E2A8825530B2231C00ACA6F7 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		CA7BA7C2806DFD9977D93F42 /* TrueNorth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrueNorth.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E26DEC7B30B210CE00221F65 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -48,6 +50,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E28A6DE7308410A90088EC0A /* FirebaseCore in Frameworks */,
+				E2A8825630B2231C00ACA6F7 /* GoogleSignIn in Frameworks */,
 				E28A6DE5308410A90088EC0A /* FirebaseAuth in Frameworks */,
 				E28A6DE9308410A90088EC0A /* FirebaseFirestore in Frameworks */,
 			);
@@ -67,6 +70,7 @@
 		C6D87C1D866889EE272BEBF2 = {
 			isa = PBXGroup;
 			children = (
+				E26DEC7B30B210CE00221F65 /* iosApp.entitlements */,
 				830334D471D9D30DED2939FF /* Configuration */,
 				9CA0C6B24391041AF730461C /* iosApp */,
 				6A3BB24413C738831212E8C5 /* Products */,
@@ -97,6 +101,7 @@
 				E28A6DE4308410A90088EC0A /* FirebaseAuth */,
 				E28A6DE6308410A90088EC0A /* FirebaseCore */,
 				E28A6DE8308410A90088EC0A /* FirebaseFirestore */,
+				E2A8825530B2231C00ACA6F7 /* GoogleSignIn */,
 			);
 			productName = iosApp;
 			productReference = CA7BA7C2806DFD9977D93F42 /* TrueNorth.app */;
@@ -128,6 +133,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				E28A6DE3308410A90088EC0A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				E2A8825430B2231C00ACA6F7 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6A3BB24413C738831212E8C5 /* Products */;
@@ -246,6 +252,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -341,6 +348,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
@@ -401,6 +409,14 @@
 				minimumVersion = 13.1.1;
 			};
 		};
+		E2A8825430B2231C00ACA6F7 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -418,6 +434,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E28A6DE3308410A90088EC0A /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		E2A8825530B2231C00ACA6F7 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E2A8825430B2231C00ACA6F7 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

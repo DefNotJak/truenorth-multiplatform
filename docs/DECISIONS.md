@@ -483,3 +483,22 @@ multi-argument callback. Kotlin lambdas carrying a nullable String next to a
 Boolean arrive in Swift with boxed types like `KotlinBoolean`, and nothing
 checks this boundary end to end, so the simplest possible signatures are worth
 more than the tidier shape.
+
+### The Sign in with Apple entitlement is a committed file, not an Xcode click
+*2026-11-21*
+
+Adding the capability through Xcode's Signing & Capabilities tab creates an
+entitlements file on whichever machine did the clicking. Until that file is
+committed, the next clone signs without the entitlement and the build fails
+with "provisioning profile doesn't include the Sign In with Apple
+capability", which reads like a certificate problem and is not one.
+
+`iosApp/iosApp.entitlements` is therefore checked in and wired to both build
+configurations via `CODE_SIGN_ENTITLEMENTS`. The capability still has to be
+enabled on the App ID in the Apple Developer portal; the file alone is not
+enough, because the profile is generated from the App ID.
+
+The first version of this file arrived from a Mac session named " "
+(a single space), along with the Xcode target itself, because a stray
+keystroke landed in a name field. It archived successfully, which is why it
+went unnoticed. The names were restored when the change was replayed here.
