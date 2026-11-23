@@ -54,6 +54,20 @@ class TestHistorySyncTest {
         assertTrue(id != "." && id != "..")
     }
 
+    /**
+     * The cross-app guarantee, stated as a literal.
+     *
+     * The native Android app implements this same sync against the same
+     * Firestore project with its own copy of this file. If either side's id
+     * format drifts, a user with both an Android phone and an iPhone gets
+     * every attempt stored twice, and nothing would report it. The matching
+     * assertion lives in that repository's TestHistorySyncTest.
+     */
+    @Test
+    fun documentIdFormatIsFrozen() {
+        assertEquals("1700000000000-15-20", attemptDocumentId(1_700_000_000_000L, 15, 20))
+    }
+
     // --- attemptsMissingLocally ---
 
     private fun remote(timestampMillis: Long, correct: Int, total: Int) = RemoteAttempt(

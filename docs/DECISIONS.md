@@ -529,3 +529,30 @@ only one that has it.
 Working around it in `iosMain` with a direct `FIRGoogleAuthProvider` call was
 rejected: GitLive's cinterop bindings are internal, so it would mean a
 cinterop definition of our own for one method.
+
+### Test history sync is duplicated in both repositories rather than shared
+*2026-11-23*
+
+The native Android app and this one are separate codebases that talk to one
+Firestore project. When the Android app gained test history sync, there were
+three options: move Android onto the KMP shared module, extract a third
+library both depend on, or copy the file.
+
+Copying won. The pure logic is 100 lines with no dependencies, and the two
+Firestore layers cannot be shared at all because one speaks GitLive and the
+other the native Firebase SDK. A shared library would therefore carry the
+small half and leave the risky half duplicated anyway, in exchange for a new
+artifact, a version to keep in step, and a publishing step before either app
+could build. Folding the live Android app into the KMP module is a far larger
+change than this feature justifies, and it is the app currently serving users.
+
+What the duplication actually risks is drift in the Firestore contract, not
+drift in the Kotlin. A user with an Android phone and an iPhone reads
+documents the other app wrote, so the collection path, field names, field
+types and the deterministic document id must match exactly. That risk is
+handled where it lives: `attemptDocumentId` has its output pinned as a literal
+string in both test suites, so a change on one side fails the other side's
+build rather than silently duplicating someone's test history.
+
+This decision expires when the Android app moves onto the shared module. At
+that point the copy should go, not be maintained.

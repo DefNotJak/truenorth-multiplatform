@@ -379,6 +379,14 @@ merge to the union instead of duplicating.
 **Account deletion** must call `deleteAllCloudHistory()` before deleting the
 user document. Firestore does not cascade.
 
+**The native Android app implements this same feature separately.** It is a
+different codebase reaching the same Firestore project, so the two must agree
+on the collection path, the field names, the field types and the deterministic
+document id, or a user moving between an Android phone and an iPhone gets
+duplicated attempts or a wiped Smart Review queue. `TestHistorySync.kt` is a
+literal copy in both repositories and the id format is pinned as a string
+literal in both test suites. Changing one side means changing the other.
+
 ---
 
 ## 8. Authentication
@@ -538,14 +546,22 @@ sampled from the original Play screenshots. See
 
 **Record these rather than rediscovering them.**
 
-### Test history does not sync across devices (open defect)
+### Test history does not sync across devices - FIXED
 
-`test_attempts`, `category_stats` and `question_results` are Room-local. A user
-who changes phone keeps their pass, favourites, flashcard progress and test date,
-but loses **test history, the progress chart, the category breakdown, and Smart
-Review**. Smart Review is a **paid** feature, so a paying customer sees it empty
-on a new device with no explanation. Fix planned in
-`docs/plan-cloud-sync-test-history.md`.
+Was: `test_attempts`, `category_stats` and `question_results` were Room-local,
+so a user who changed phone kept their pass, favourites, flashcard progress and
+test date but lost **test history, the progress chart, the category breakdown,
+and Smart Review**. Smart Review is a **paid** feature, so a paying customer
+saw it empty on a new device with no explanation.
+
+Fixed in this app on 2026-11-01 (section 7b) and in the native Android app on
+2026-11-23, version 1.0.9. Both still need verifying on a real upgrade; see
+`docs/BACKLOG.md`.
+
+**What still does not survive a phone change**, and is accepted: the flashcard
+last-viewed position, the saved practice test configuration, and the theme.
+The first two are small enough that restoring them is worth less than the code
+to do it, and the theme is deliberately per-device.
 
 ### Entitlement is client-trusted
 
