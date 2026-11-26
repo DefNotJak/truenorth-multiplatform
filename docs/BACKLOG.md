@@ -179,6 +179,16 @@ number. If it works, item 3 is finished.
 
 ## Unscheduled
 
+- **Xcode must be on the iOS 27 SDK before the next upload after April 2027.**
+  Apple warning ITMS-90725 on build 6, received 2026-11-21: the delivery
+  succeeded, but from April 2027 App Store Connect refuses any binary built
+  with an older SDK. Build 6 used iOS 26.5, which is whatever Xcode the cloud
+  Mac happens to have. Nothing in this repo sets it, so there is no change to
+  make here and `IPHONEOS_DEPLOYMENT_TARGET = 18.2` is unrelated and should
+  stay. The work is on the build machine: check `xcodebuild -version` and
+  update Xcode before the next release, not during one. The CI item below
+  would retire this permanently, since hosted macOS runners track current
+  Xcode.
 - **Passwordless email link sign-in.** Smaller than Google was, and the right
   next step for an audience studying on a phone who would rather not keep a
   password. Deferred until Google has run in production for a while.
